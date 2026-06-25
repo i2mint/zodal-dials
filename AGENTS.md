@@ -1,6 +1,6 @@
 # zodal-dials — Agent Dev Guide
 
-> **Stage:** **active development — Horizons 1–2 + first satellites built.** 7 packages on `main`,
+> **Stage:** **active development — Horizons 1–2 + first satellites built.** 8 packages on `main`,
 > composing end-to-end (`tests/integration/`), ~265 tests, nothing published. Built: `@zodal/dials-core`
 > (cascade keystone), `@zodal/dials-ui` (headless layer + reactive `createSettingsStore`),
 > `@zodal/dials-ui-vanilla` + `@zodal/dials-ui-shadcn` (renderers), `@zodal/dials-store-env` +

@@ -10,8 +10,8 @@
 > the routed skill and execute largely independently. Decisions are pre-made with rationale; the few
 > genuinely-open ones are flagged with a working default so building is never blocked.
 
-**Status (2026-06-25):** Horizons 1–2 + first satellites + codegen **built and merged** — 7 packages
-on `main`, composing end-to-end (a monorepo `tests/integration/` proves it), ~265 tests green, nothing
+**Status (2026-06-25):** Horizons 1–2 + satellites + codegen + secrets **built and merged** — 8 packages
+on `main`, composing end-to-end (a monorepo `tests/integration/` proves it), ~250 tests green, nothing
 published (first npm publish gated on owner approval). Each shipped via build → adversarial critic
 (1–2 passes) → fix + regression test → CI-green PR → merge. Dev toolkit refreshed to match (#13);
 build gotchas captured in [`docs/lessons-from-the-build.md`](lessons-from-the-build.md).
@@ -25,13 +25,13 @@ build gotchas captured in [`docs/lessons-from-the-build.md`](lessons-from-the-bu
 | `@zodal/dials-store-env` | env-var `LayerStore` (read-only scope) | #9 |
 | `@zodal/dials-store-jsonc` | format-preserving JSONC file `LayerStore` | #9 |
 | `@zodal/dials-codegen` | JSON Schema emit · `toPrompt` · CLI (`get`/`set`/`list --show-origin`) | #11 |
+| `@zodal/dials-store-secret` | `SecretBackend` (memory ref) + `createSensitiveSettingsProvider` (bifurcation) | #14 |
 
 **Both flagship benchmark gates green** (cascade+provenance round-trip #4; secret-never-leaks #5).
-Every synthesis dimension (A–P) now has a shipped implementation or seam.
+**Every synthesis dimension (A–P) now has a shipped implementation.**
 **Remaining (far horizon, incremental — established patterns):** more renderers (`-cli`, `-web-components`),
-more stores (`-toml`/`-yaml`, a concrete `SecretBackend` + `createSensitiveSettingsProvider`, reuse of
-zodal-store-* as config backends), the optional constraint-solver adapter, and the first npm publish
-(owner-gated).
+more stores (`-toml`/`-yaml`, a real OS-keychain/Vault `SecretBackend`, reuse of zodal-store-* as config
+backends), the optional constraint-solver adapter, and the first npm publish (owner-gated).
 
 ---
 
