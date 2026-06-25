@@ -122,4 +122,6 @@ export interface SecretBackend {
   reveal(key: SettingKey): Promise<string | undefined>;
   set(key: SettingKey, value: string): Promise<SecretRef>;
   delete(key: SettingKey): Promise<void>;
+  /** The keys this backend holds (so a bifurcation provider can surface masked refs on load). */
+  list(): Promise<SettingKey[]>;
 }

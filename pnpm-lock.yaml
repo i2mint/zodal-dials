@@ -109,6 +109,24 @@ importers:
         specifier: ^3.0.0
         version: 3.2.6(@types/node@22.20.0)(jsdom@25.0.1)
 
+  packages/dials-store-secret:
+    devDependencies:
+      '@zodal/core':
+        specifier: ^0.1.2
+        version: 0.1.2(zod@4.4.3)
+      '@zodal/dials-core':
+        specifier: workspace:*
+        version: link:../dials-core
+      tsup:
+        specifier: ^8.0.0
+        version: 8.5.1(postcss@8.5.15)(typescript@5.9.3)
+      typescript:
+        specifier: ^5.7.0
+        version: 5.9.3
+      vitest:
+        specifier: ^3.0.0
+        version: 3.2.6(@types/node@22.20.0)(jsdom@25.0.1)
+
   packages/dials-ui:
     devDependencies:
       '@zodal/core':
