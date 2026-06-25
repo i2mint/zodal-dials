@@ -70,3 +70,10 @@ export type { ToSettingsFormOptions } from './form.js';
 
 export { createSettingsStore } from './store.js';
 export type { SettingsStore, SettingsState, CreateSettingsStoreOptions } from './store.js';
+
+export {
+  createProfileStore,
+  createMemoryProfileStorage,
+  createLocalStorageProfileStorage,
+} from './profiles.js';
+export type { ProfileStore, ProfileStorage, ProfileStoreOptions, ProfileMeta, NamedProfile } from './profiles.js';
