@@ -38,10 +38,8 @@ jobs:
       - name: Unit tests
         run: pnpm test
 
-      # Integration tests (cross-package) are added at Horizon 1, once the first packages
-      # land and tests/vitest.config.ts exists. Until then there is nothing to run.
-      # - name: Integration tests
-      #   run: pnpm test:integration
+      - name: Integration tests
+        run: pnpm test:integration
 
   publish:
     name: Publish
