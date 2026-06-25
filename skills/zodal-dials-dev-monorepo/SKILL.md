@@ -16,6 +16,27 @@ only what they use. The build/publish mechanism is modeled **exactly** on the `z
 > CI-driven and gated on the owner's explicit approval for the first publish. Your job is to
 > get the pipeline correct and commit; a human triggers the release.
 
+**The 7 packages are built** (the initial build merged them in). The job now is *adding the
+next* package or *changing the build/publish wiring* — not scaffolding from scratch. The map:
+
+| Package | Role |
+|---------|------|
+| `@zodal/dials-core` | Canonical settings model + cascade engine — `defineDials`, resolve/provenance, layers, merge, constraints, dependent defaults, secrets. Depends only on `zod` + `@zodal/core` (both peers). |
+| `@zodal/dials-ui` | Headless settings-UI layer — `toSettingsForm`, the settings renderer registry, facet grouping, search, change-lifecycle events. Adds `@zodal/ui` peer. |
+| `@zodal/dials-codegen` | Machine-interface emit — JSON Schema (editor autocomplete), `toPrompt` (AI), CLI helpers. |
+| `@zodal/dials-store-env` | Environment-variable `LayerStore` (high-precedence, read-mostly scope). Node-only. |
+| `@zodal/dials-store-jsonc` | JSONC-file `LayerStore` with format-preserving writes (VS Code `settings.json` style). Node-only; carries a **real runtime `dependencies`** (`jsonc-parser`). |
+| `@zodal/dials-ui-vanilla` | Vanilla HTML/JS reference renderer — no framework, produces DOM. jsdom tests. |
+| `@zodal/dials-ui-shadcn` | React/shadcn renderer — settings-panel components. Externals `react`/`react-dom` (peers); jsdom + `@testing-library/react` tests. |
+
+Patterns now in use (lean on the real packages as templates rather than the abstract template below):
+- **Renderer with a framework** (`dials-ui-shadcn`): `react`/`react-dom` are peers (kept out of the
+  bundle, externalized by tsup); `@testing-library/react` + `jsdom` drive the unit tests.
+- **Framework-free renderer** (`dials-ui-vanilla`): no UI peer, but still `jsdom` for DOM tests.
+- **Store adapter with a runtime dep** (`dials-store-jsonc`): a real `"dependencies"` block
+  (`jsonc-parser`) — not every package is dependency-free. Node-only, so it carries
+  `@types/node` and `"types": ["node"]` in its `tsconfig.json`.
+
 ## Repo layout
 
 ```
@@ -24,7 +45,7 @@ zodal-dials/
   pnpm-workspace.yaml       # packages: [ 'packages/*' ]
   turbo.json                # build dependsOn ['^build'] outputs ['dist/**']; test/typecheck dependsOn build/^build
   tsconfig.base.json        # ES2022, ESNext, moduleResolution bundler, strict, declaration+maps, isolatedModules, verbatimModuleSyntax
-  tests/                    # cross-package integration tests (tests/vitest.config.ts) — added at Horizon 1
+  tests/                    # cross-package integration tests (tests/vitest.config.ts) — present and CI-run
   .github/workflows/ci.yml  # validate + publish jobs (see below)
   packages/
     <pkg>/                  # one publishable @zodal/dials-* package each
@@ -57,15 +78,15 @@ satellite packages (`zodal-ui-shadcn`, `zodal-store-fs`).
 ```
 
 - **`dials-core`** depends only on `zod` + `@zodal/core` (both peers). **No renderer/store deps.**
-- **`dials-ui`** depends on `@zodal/core` + `@zodal/dials-core` (and `@zodal/ui` peer once
-  generators land). It is the headless UI layer.
+- **`dials-ui`** depends on `@zodal/core` + `@zodal/dials-core` + the `@zodal/ui` peer. It is the
+  headless UI layer.
 - **renderer packages (`dials-ui-*`)** depend on `@zodal/dials-ui` **only** — never on another
   renderer.
 - **store adapters (`dials-store-*`)** depend on `@zodal/store` + `@zodal/dials-core`.
 - **Hard rule:** `dials-ui` and `dials-store-*` never depend on each other. Shared logic belongs
   in `@zodal/dials-core`.
 
-## Per-package `package.json` template (model on `zodal-graphs/packages/graph-core`)
+## Per-package `package.json` template (model on the real packages, or `zodal-graphs/packages/graph-core`)
 
 ```jsonc
 {
@@ -98,12 +119,18 @@ satellite packages (`zodal-ui-shadcn`, `zodal-store-fs`).
   or `@zodal/dials-ui` (for renderers). Mirror each peer in `devDependencies` so local builds
   resolve. An **optional** peer (e.g. a renderer's UI framework) is declared in
   `peerDependenciesMeta` with `{ optional: true }`.
+- A package may carry a **real `dependencies`** block — `dials-store-jsonc` ships `jsonc-parser`.
+  Only put a runtime lib here; everything else stays a peer or dev dep.
+- **Node-only packages** (the store adapters) declare `@types/node` in `devDependencies` and set
+  `"types": ["node"]` in their `tsconfig.json` (`dials-store-jsonc` does both). A browser-targeting
+  package does not.
 - The **`exports` map must mirror tsup output.** Multi-entry packages (e.g. a `./node` subpath for
   Node-only file I/O in a store adapter) add the entry to `tsup.config.ts` AND a parallel subpath
   block here.
-- Keep Node-only code (`fs`) behind a separate `./node` entry with dynamic
-  `await import('node:fs/promises')` — never a top-level import in the main entry, or browser
-  bundles break.
+- Keep optional Node-only file I/O (`fs`) behind a separate `./node` entry with dynamic
+  `await import('node:fs/promises')` rather than a top-level import — so a package meant to load in a
+  browser doesn't break. (The store adapters are wholly Node-only, so this only matters for mixed
+  packages.)
 
 ### Companion configs (uniform across packages)
 
@@ -136,10 +163,11 @@ Single workflow, **two jobs**, identical shape to zodal:
 
 - **`validate`** (every push/PR to `main`, unless commit msg has `[skip ci]`):
   `checkout@v6` → `pnpm/action-setup@v5` → `setup-node@v6` (node 22, pnpm cache) →
-  `pnpm install --frozen-lockfile` → `pnpm typecheck` → `pnpm build` → `pnpm test`.
-  - The **integration-test step is currently commented out** in `ci.yml`
-    (`pnpm test:integration`). **Re-enable it at Horizon 1**, once the first packages land and
-    `tests/vitest.config.ts` exists — until then there is nothing for it to run.
+  `pnpm install --frozen-lockfile` → `pnpm typecheck` → `pnpm build` → `pnpm test`
+  → `pnpm test:integration`.
+  - The **integration-test step is now ENABLED** in `ci.yml` (`pnpm test:integration`) — no longer
+    commented out — since the packages and the root `tests/vitest.config.ts` exist. Keep it green; a
+    new package that touches a cross-package contract should add to the root suite.
 - **`publish`** (`needs: validate`; runs only when **all** of: `github.event_name == 'push'`,
   `github.ref == 'refs/heads/main'`, and the commit message contains `[publish]` or
   `[force publish]`; `permissions: contents: write`):
@@ -175,8 +203,18 @@ used for `checkout`.
   Use `[skip ci]` to skip validation on a no-op commit.
 - A normal commit (no marker) just runs `validate` — safe to push freely. The `publish` job is
   present in `ci.yml` but **never triggers** without a `[publish]`/`[force publish]` marker, so it
-  stays dormant through all of Horizon 1.
-- **First publish needs the owner's explicit approval.** Never publish from a laptop.
+  has stayed dormant through the whole build.
+- **Nothing is published yet.** The 7 packages are built and CI-green but not on npm — the
+  **first publish needs the owner's explicit approval.** Never publish from a laptop.
+
+## How a package ships (the build loop)
+
+Every one of the 7 packages went through the same loop, and a new package should too:
+**build → adversarial critic (1–2 passes) → fix + regression test → CI-green PR → merge.** A
+spawned critic agent reviews each package against its contract and the Zod v4 gotchas; its findings
+are fixed with a regression test guarding each, and the per-package adversarial findings are recorded
+in **`docs/lessons-from-the-build.md`** — read it before adding a package so you don't re-hit a known
+trap.
 
 ## Conventions (from the zodal ecosystem)
 
@@ -190,15 +228,17 @@ used for `checkout`.
 
 - `zodal-dials/.github/workflows/ci.yml` — the validate+publish workflow as it stands on disk.
 - `zodal-dials/package.json`, `…/pnpm-workspace.yaml`, `…/turbo.json`, `…/tsconfig.base.json` — root config.
+- `zodal-dials/packages/dials-store-jsonc/` — the real Node-only store-adapter template (runtime
+  `dependencies`, `@types/node`, `"types": ["node"]`).
+- `zodal-dials/packages/dials-ui-shadcn/` — the real framework-renderer template (react/react-dom
+  peers, `@testing-library/react` + jsdom tests).
 - `zodal-graphs/packages/graph-core/{package.json,tsup.config.ts,tsconfig.json,vitest.config.ts}` —
   the per-package template trio (dual CJS/ESM, types-first conditional exports).
-- `zodal-store-fs/` (whole repo) — the independent-package shape (peer deps, own ci.yml, `describe.each`
-  contract tests) if a satellite is ever split out.
-- `docs/dev-plan.md` §4 (Horizon 1) and §7 (CI/publish workstream) — the build order this serves.
+- `docs/lessons-from-the-build.md` — per-package adversarial findings; read before adding a package.
+- `docs/dev-plan.md` §7 (CI/publish workstream) — the build order this serves.
 
 ## Maintenance
 
 If the publish flow changes (e.g. the owner later adopts changesets or per-package tags), update
 this skill and `docs/dev-plan.md` together. Keep the workflow snippet here matched to the actual
-`ci.yml` on disk — especially the commented integration-test step (re-enable it at Horizon 1) and
-the `dials-core`-derived tag.
+`ci.yml` on disk — especially the now-enabled integration-test step and the `dials-core`-derived tag.
