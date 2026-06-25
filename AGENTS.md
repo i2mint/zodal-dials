@@ -67,7 +67,7 @@ zodal architecture at `_zodals/zodal/.claude/CLAUDE.md`, and the precedent speci
 ## Dev skills (read the one that matches your task)
 
 Skills live in repo-root `skills/<name>/` and are symlinked into `.claude/skills/`. Invoke as
-`/zodal-dials-dev-<name>`.
+`/<skill-name>`.
 
 | Task | Skill |
 |---|---|
@@ -75,6 +75,7 @@ Skills live in repo-root `skills/<name>/` and are symlinked into `.claude/skills
 | Headless UI / settings renderer registry / testers + widgets / facet→group projection / **search** / dirty-save events | `zodal-dials-dev-ui` |
 | Repo structure / adding a package / build / **npm publish & CI** | `zodal-dials-dev-monorepo` |
 | Finding the right research doc / "what did we decide for X" | `zodal-dials-dev-research-lookup` |
+| **Best practices / state of the art for complex settings UX** (asking, not building) | `settings-ux` |
 
 Each skill **routes the task-specific research docs into itself** — open the skill, not the whole
 `docs/research/` tree. The routing index is [`docs/research_guide.md`](docs/research_guide.md); the
@@ -88,6 +89,7 @@ skill) for a self-contained role you spawn repeatedly:
 | Role | Agent | When |
 |---|---|---|
 | Adversarial checkpoint review | `dials-checkpoint-critic` | Before opening a PR for any Horizon checkpoint — it tries to break the cascade/provenance and secret-leak guarantees. |
+| Settings-UX research advisor | `dials-ux-advisor` | Answering best-practice / state-of-the-art UX questions about complex settings — deep/fresh, corpus-grounded, with Vancouver citations. |
 
 ## The skill-maintenance loop (keep doing this — skills & agents are DYNAMIC)
 
