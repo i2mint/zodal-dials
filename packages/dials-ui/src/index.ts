@@ -67,3 +67,6 @@ export type { ChangeRecord } from './lifecycle.js';
 
 export { toSettingsForm, toFieldStates } from './form.js';
 export type { ToSettingsFormOptions } from './form.js';
+
+export { createSettingsStore } from './store.js';
+export type { SettingsStore, SettingsState, CreateSettingsStoreOptions } from './store.js';
