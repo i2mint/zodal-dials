@@ -10,9 +10,25 @@
 > the routed skill and execute largely independently. Decisions are pre-made with rationale; the few
 > genuinely-open ones are flagged with a working default so building is never blocked.
 
-**Status (2026-06-25):** Repo created (`i2mint/zodal-dials`, public), monorepo scaffolded, full
-research corpus + design docs + dev toolkit landed. **No package code yet.** The first build
-checkpoint is **`@zodal/dials-core` — the cascade keystone**. Nothing published to npm.
+**Status (2026-06-25):** Horizons 1–2 + first satellites **built and merged** — 6 packages on `main`,
+composing end-to-end (a monorepo `tests/integration/` proves it), ~190 tests green, nothing published
+(first npm publish gated on owner approval). Each shipped via build → adversarial critic (1–2 passes)
+→ fix + regression test → CI-green PR → merge.
+
+| Package | Role | PR |
+|---|---|---|
+| `@zodal/dials-core` | cascade keystone — `defineDials`, `resolve`/provenance, patches (RFC 7386/6902), constraints, dependent defaults, secrets, `LayerStore` | #6, #9 |
+| `@zodal/dials-ui` | headless layer — `toSettingsForm`/`toFieldStates`, settings renderer registry, faceted `toGroups`, search, lifecycle | #7 |
+| `@zodal/dials-ui-vanilla` | vanilla DOM reference renderer | #8 |
+| `@zodal/dials-ui-shadcn` | React/shadcn renderer | #10 |
+| `@zodal/dials-store-env` | env-var `LayerStore` (read-only scope) | #9 |
+| `@zodal/dials-store-jsonc` | format-preserving JSONC file `LayerStore` | #9 |
+
+**Both flagship benchmark gates green** (cascade+provenance round-trip #4; secret-never-leaks #5).
+**Remaining (far horizon, no issues yet):** more renderers (`-cli`, `-web-components`), more stores
+(`-toml`/`-yaml`/`-keychain`, reuse of zodal-store-* as config backends), codegen (JSON Schema emit,
+`toPrompt`, CLI `get`/`set`/`list --show-origin`), the optional constraint-solver adapter, reactive
+store wrapper, and refreshing the dev skills against the now-concrete APIs.
 
 ---
 
