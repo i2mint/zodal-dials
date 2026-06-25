@@ -1,8 +1,13 @@
 # zodal-dials — Agent Dev Guide
 
-> **Stage:** design complete, **pre-implementation**. The repo holds research + design + this
-> toolkit. No package code yet. The first build checkpoint is **`@zodal/dials-core` — the cascade
-> keystone**. See [`docs/dev-plan.md`](docs/dev-plan.md) for the phased plan.
+> **Stage:** **active development — Horizons 1–2 + first satellites built.** 7 packages on `main`,
+> composing end-to-end (`tests/integration/`), ~265 tests, nothing published. Built: `@zodal/dials-core`
+> (cascade keystone), `@zodal/dials-ui` (headless layer + reactive `createSettingsStore`),
+> `@zodal/dials-ui-vanilla` + `@zodal/dials-ui-shadcn` (renderers), `@zodal/dials-store-env` +
+> `@zodal/dials-store-jsonc` (stores), `@zodal/dials-codegen` (JSON Schema / `toPrompt` / CLI). Both
+> flagship gates green. See [`docs/dev-plan.md`](docs/dev-plan.md) for status + far horizon, and
+> **[`docs/lessons-from-the-build.md`](docs/lessons-from-the-build.md) for the gotchas the adversarial
+> reviews caught — read it before touching secrets, patches, or the cascade.**
 
 This file is the **index/map** for agents developing zodal-dials — it routes you to the skill or
 doc you need. It is *not* the content store: behavioral rules live here and in skills; context and
@@ -120,6 +125,8 @@ When the plan (`docs/dev-plan.md`) and the toolkit disagree, reconcile them — 
 ## Key docs
 
 - [`docs/dev-plan.md`](docs/dev-plan.md) — the phased, horizon-graded development plan (living).
+- [`docs/lessons-from-the-build.md`](docs/lessons-from-the-build.md) — gotchas the adversarial reviews
+  caught (secrets, patches, UI, store, codegen). **Read before re-touching those areas.**
 - [`docs/zodal-dials-concept.md`](docs/zodal-dials-concept.md) — design intent & vocabulary.
 - [`docs/research_guide.md`](docs/research_guide.md) — routing index for the research corpus.
 - [`docs/research/README.md`](docs/research/README.md) — the consolidated KEEP/AVOID decision table.

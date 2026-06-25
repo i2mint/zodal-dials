@@ -11,6 +11,11 @@ The design corpus is large (~400 KB across 18 files: terminology + UX + eight di
 four prior-art case studies + the synthesis + two grounding docs). **Don't read it all.** This
 skill routes you to the one right document.
 
+The project has moved from design phase to active development (Horizons 1–2 built, packages merged
+on `main`), so the research corpus is now the **rationale behind shipped code** — and increasingly
+"what did we decide for X?" means a *build lesson*, recorded in
+[`docs/lessons-from-the-build.md`](../../docs/lessons-from-the-build.md), not just a research finding.
+
 ## Three entry points (use these first)
 
 1. **[`docs/research_guide.md`](../../docs/research_guide.md)** — the routing index: `file → what
@@ -22,6 +27,13 @@ skill routes you to the one right document.
 3. **[`docs/research/raw/04-synthesis.md`](../../docs/research/raw/04-synthesis.md)** — **THE
    ARBITER.** The consolidating SSOT (vocabulary §1, per-dimension model + analog §2, architecture
    §3, KEEP/AVOID §4, open questions §5). Open it when the table/guide isn't deep enough.
+4. **[`docs/dev-plan.md`](../../docs/dev-plan.md) §Status** — **what is BUILT vs far-horizon.** The
+   project is in active development (Horizons 1–2 + first satellites merged); open this to know
+   whether a concern is already shipped, in flight, or still on the far horizon.
+5. **[`docs/lessons-from-the-build.md`](../../docs/lessons-from-the-build.md)** — **the gotchas &
+   decisions the adversarial reviews settled during the build.** A secrets/merge/UI/provenance
+   "what did we decide for X?" increasingly has its answer here (a build lesson + its regression
+   test), not only in the research.
 
 ## The 30-second crosswalk
 
