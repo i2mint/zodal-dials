@@ -86,3 +86,5 @@ export type {
   DialsCapabilities,
   DialsDefinition,
 } from './define-dials.js';
+
+export type { LayerStore, LayerStoreCapabilities } from './store.js';
