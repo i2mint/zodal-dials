@@ -1,6 +1,6 @@
 {
   "name": "@zodal/dials-ui-shadcn",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "React/shadcn renderer for @zodal/dials-ui — settings panel components consuming the headless config",
   "type": "module",
   "main": "./dist/index.cjs",
@@ -11,14 +11,14 @@
   "files": ["dist"],
   "scripts": { "build": "tsup", "prepublishOnly": "pnpm build", "test": "vitest run", "typecheck": "tsc --noEmit" },
   "peerDependencies": {
-    "@zodal/core": "^0.1.2",
-    "@zodal/dials-core": "^0.1.0",
-    "@zodal/dials-ui": "^0.1.0",
+    "@zodal/core": "^0.2.1",
+    "@zodal/dials-core": "^0.2.0",
+    "@zodal/dials-ui": "^0.2.0",
     "react": "^18.0.0 || ^19.0.0",
     "react-dom": "^18.0.0 || ^19.0.0"
   },
   "devDependencies": {
-    "@zodal/core": "^0.1.2",
+    "@zodal/core": "^0.2.1",
     "@zodal/dials-core": "workspace:*",
     "@zodal/dials-ui": "workspace:*",
     "@testing-library/react": "^16.0.0",

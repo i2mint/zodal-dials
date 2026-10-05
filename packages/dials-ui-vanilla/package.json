@@ -1,6 +1,6 @@
 {
   "name": "@zodal/dials-ui-vanilla",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Vanilla HTML/JS reference renderer for @zodal/dials-ui — no framework, produces DOM from the headless settings config",
   "type": "module",
   "main": "./dist/index.cjs",
@@ -21,13 +21,13 @@
     "typecheck": "tsc --noEmit"
   },
   "peerDependencies": {
-    "@zodal/core": "^0.1.2",
-    "@zodal/dials-core": "^0.1.0",
-    "@zodal/dials-ui": "^0.1.0",
+    "@zodal/core": "^0.2.1",
+    "@zodal/dials-core": "^0.2.0",
+    "@zodal/dials-ui": "^0.2.0",
     "zod": ">=4.1.13"
   },
   "devDependencies": {
-    "@zodal/core": "^0.1.2",
+    "@zodal/core": "^0.2.1",
     "@zodal/dials-core": "workspace:*",
     "@zodal/dials-ui": "workspace:*",
     "jsdom": "^25.0.0",

@@ -106,8 +106,8 @@ satellite packages (`zodal-ui-shadcn`, `zodal-store-fs`).
   "publishConfig": { "access": "public" },
   "files": ["dist"],
   "scripts": { "build": "tsup", "prepublishOnly": "pnpm build", "test": "vitest run", "typecheck": "tsc --noEmit" },
-  "peerDependencies": { "@zodal/core": "^0.1.0", "zod": ">=4.1.13" },
-  "devDependencies": { "@zodal/core": "^0.1.2", "tsup": "^8.0.0", "typescript": "^5.7.0", "vitest": "^3.0.0", "zod": "^4.4.0" }
+  "peerDependencies": { "@zodal/core": "^0.2.1", "zod": ">=4.1.13" },
+  "devDependencies": { "@zodal/core": "^0.2.1", "tsup": "^8.0.0", "typescript": "^5.7.0", "vitest": "^3.0.0", "zod": "^4.4.0" }
 }
 ```
 
@@ -204,8 +204,12 @@ used for `checkout`.
 - A normal commit (no marker) just runs `validate` — safe to push freely. The `publish` job is
   present in `ci.yml` but **never triggers** without a `[publish]`/`[force publish]` marker, so it
   has stayed dormant through the whole build.
-- **Nothing is published yet.** The 7 packages are built and CI-green but not on npm — the
-  **first publish needs the owner's explicit approval.** Never publish from a laptop.
+- **Published.** 0.1.0 of every `@zodal/dials-*` package is on npm (peering `@zodal/core ^0.1.2`);
+  0.2.0 moves to `@zodal/core`/`@zodal/ui` `^0.2.1`. Never publish from a laptop.
+- **Peer ranges follow zodal's `docs/versioning.md`:** a caret on the lowest version needed
+  (`^0.2.1`), never `>=X <1.0.0`. In 0.x the minor is the breaking number, so dropping support for
+  a core minor is a minor bump here too, and the sibling `@zodal/dials-*` peers move with it (a
+  0.2.0 package peering `@zodal/dials-core ^0.1.0` would be uninstallable beside dials-core 0.2.0).
 
 ## How a package ships (the build loop)
 
