@@ -8,7 +8,7 @@
 import type { z } from 'zod';
 import { baseType, getObjectShape, readMeta } from '@zodal/dials-core';
 import type { DialsDefinition } from '@zodal/dials-core';
-import { getEnumValues, getNumericBounds, humanizeFieldName } from '@zodal/core';
+import { getEnumValues, getNumericBounds, humanizeFieldName, unwrapZodSchema } from '@zodal/core';
 import { widgetKindFor } from './widgets.js';
 import type { SettingFieldConfig } from './types.js';
 
@@ -23,6 +23,37 @@ function safe<T>(fn: () => T): T | undefined {
   } catch {
     return undefined;
   }
+}
+
+/** Keep only the string → string entries of a `.meta({ enumLabels })` map whose key is an enum value. */
+function readEnumLabels(raw: unknown, enumValues: string[] | undefined): Record<string, string> | undefined {
+  if (!raw || typeof raw !== 'object' || !enumValues) return undefined;
+  const labels: Record<string, string> = {};
+  for (const v of enumValues) {
+    const label = (raw as Record<string, unknown>)[v];
+    if (typeof label === 'string') labels[v] = label;
+  }
+  return Object.keys(labels).length > 0 ? labels : undefined;
+}
+
+/** A round step of about 1/100 of a range (0..1 → 0.01, 0..100 → 1, 0..1000 → 10). */
+function roundStepFor(min: number, max: number): number | undefined {
+  const span = max - min;
+  if (!(span > 0)) return undefined;
+  return 10 ** Math.round(Math.log10(span / 100));
+}
+
+/** The step a number moves by: explicit `.meta({ step })`, else Zod `.multipleOf()`, else 1 for an
+ *  integer, else — for a SLIDER only — a round step of ~1/100 of the range (a number input keeps
+ *  free entry). Declare a step whenever the guess is wrong; a declared step always wins. */
+function stepFor(field: z.ZodType, meta: Record<string, unknown>, bounds: { min?: number; max?: number } | undefined, isSlider: boolean): number | undefined {
+  if (typeof meta.step === 'number' && meta.step > 0 && Number.isFinite(meta.step)) return meta.step;
+  const inner = unwrapZodSchema(field) as unknown as { _zod?: { bag?: { multipleOf?: unknown; format?: unknown } } };
+  const bag = inner._zod?.bag ?? {};
+  if (typeof bag.multipleOf === 'number' && bag.multipleOf > 0) return bag.multipleOf;
+  if (typeof bag.format === 'string' && /int/.test(bag.format)) return 1;
+  if (isSlider && bounds?.min !== undefined && bounds.max !== undefined) return roundStepFor(bounds.min, bounds.max);
+  return undefined;
 }
 
 function uniqueStrings(values: string[]): string[] {
@@ -54,13 +85,18 @@ export function describeSettings<T extends z.ZodObject<z.ZodRawShape>>(
     const facets = uniqueStrings([...metaFacets, ...(options.facets?.[key] ?? [])]);
     const advanced = facets.includes('advanced') || meta.advanced === true;
 
+    const widget = widgetKindFor({ zodType, sensitivity, bounds, enumValues, metaWidget: meta.editWidget });
+    const step = field && zodType === 'number' ? stepFor(field, meta, bounds, widget === 'slider') : undefined;
+    const enumLabels = readEnumLabels(meta.enumLabels, enumValues);
+    const unit = typeof meta.unit === 'string' && meta.unit !== '' ? meta.unit : undefined;
+
     const required = field ? !field.safeParse(undefined).success && dials.defaults[key] === undefined : false;
 
     return {
       key,
       label: typeof meta.title === 'string' ? meta.title : humanizeFieldName(key),
       description: typeof meta.description === 'string' ? meta.description : undefined,
-      widget: widgetKindFor({ zodType, sensitivity, bounds, enumValues, metaWidget: meta.editWidget }),
+      widget,
       zodType,
       required,
       readOnly: meta.readOnly === true || meta.editable === false,
@@ -71,7 +107,10 @@ export function describeSettings<T extends z.ZodObject<z.ZodRawShape>>(
       // from `defaultValue` would expose it. Secrets carry no default here (the secret backend owns it).
       defaultValue: sensitivity === 'secret' ? undefined : dials.defaults[key],
       enumValues: enumValues && enumValues.length > 0 ? enumValues : undefined,
+      ...(enumLabels ? { enumLabels } : {}),
       bounds,
+      ...(step !== undefined ? { step } : {}),
+      ...(unit ? { unit } : {}),
       facets,
       advanced,
       order: typeof meta.order === 'number' ? meta.order : undefined,

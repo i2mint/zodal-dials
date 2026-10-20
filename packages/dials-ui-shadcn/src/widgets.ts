@@ -54,6 +54,7 @@ export const NumberControl: SettingControl = (p) =>
     value: asText(p.state.value),
     min: p.field.bounds?.min,
     max: p.field.bounds?.max,
+    step: p.field.step,
     disabled: isDisabled(p),
     onChange: (e: ChangeEvent<HTMLInputElement>) => {
       const v = decodeNumber(e.target.value);
@@ -71,13 +72,15 @@ export const SliderControl: SettingControl = (p) =>
       value: asText(p.state.value),
       min: p.field.bounds?.min,
       max: p.field.bounds?.max,
+      // without a step a range input moves in steps of 1 (a 0.1..1 slider would have two positions)
+      step: p.field.step ?? 'any',
       disabled: isDisabled(p),
       onChange: (e: ChangeEvent<HTMLInputElement>) => {
         const v = decodeNumber(e.target.value);
         if (v !== undefined) p.onChange?.(v);
       },
     }),
-    h('output', { className: 'zodal-dials-slider-value' }, asText(p.state.value)),
+    h('output', { className: 'zodal-dials-slider-value' }, asText(p.state.value) + (p.state.value != null && p.field.unit ? p.field.unit : '')),
   );
 
 export const SelectControl: SettingControl = (p) =>
@@ -89,7 +92,7 @@ export const SelectControl: SettingControl = (p) =>
       disabled: isDisabled(p),
       onChange: (e: ChangeEvent<HTMLSelectElement>) => p.onChange?.(e.target.value),
     },
-    ...(p.field.enumValues ?? []).map((v, i) => h('option', { key: `${i}:${v}`, value: v }, v)),
+    ...(p.field.enumValues ?? []).map((v, i) => h('option', { key: `${i}:${v}`, value: v }, p.field.enumLabels?.[v] ?? v)),
   );
 
 export const RadioControl: SettingControl = (p) =>
@@ -108,7 +111,7 @@ export const RadioControl: SettingControl = (p) =>
           disabled: isDisabled(p),
           onChange: () => p.onChange?.(v),
         }),
-        v,
+        p.field.enumLabels?.[v] ?? v,
       ),
     ),
   );

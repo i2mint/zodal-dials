@@ -15,7 +15,7 @@ export function toIndexableSettings(fields: SettingFieldConfig[]): IndexableSett
     key: f.key,
     title: f.label,
     description: f.description ?? '',
-    enumLabels: f.enumValues ?? [],
+    enumLabels: [...(f.enumValues ?? []), ...Object.values(f.enumLabels ?? {})],
     facets: f.facets,
     keywords: [f.key, ...f.key.split(/[._\-/]/).filter(Boolean)],
   }));

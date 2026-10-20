@@ -20,6 +20,7 @@ import {
   renderArray,
   renderRawJson,
   renderSecret,
+  renderColor,
 } from './widgets.js';
 
 /** Tester matching a field's resolved widget kind (supplied via the render context as `widget`). */
@@ -35,7 +36,7 @@ const WIDGET_RENDERERS: Array<[WidgetKind, SettingRenderFn]> = [
   ['number', renderNumber],
   ['text', renderText],
   ['textarea', renderTextarea],
-  ['color', renderText],
+  ['color', renderColor],
   ['date', renderText],
   ['path', renderText],
   ['object', renderObject],

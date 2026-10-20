@@ -1,0 +1,365 @@
+/*
+ * @zodal/dials-ui-vanilla/styles.css: an optional, touch-first stylesheet for the vanilla settings panel.
+ *
+ * It inherits the host's typography (it never sets a font family, and text inputs only raise their
+ * size to 16px so iOS does not zoom on focus) and its colour scheme (colours derive from
+ * currentColor and Canvas). Every rule sits in :where(), so it has zero specificity and any host rule
+ * wins. Tune it with these custom properties, set on the panel or any ancestor:
+ *
+ *   --zodal-dials-target     minimum touch target (44px)
+ *   --zodal-dials-thumb      slider thumb diameter (28px)
+ *   --zodal-dials-track      slider track thickness (6px)
+ *   --zodal-dials-gap        space between rows and sections (1rem)
+ *   --zodal-dials-radius     corner radius of inputs and buttons (8px)
+ *   --zodal-dials-accent     selected chips, switch on, slider thumb (#2563eb)
+ *   --zodal-dials-on-accent  text on the accent (#fff)
+ *   --zodal-dials-border     input and chip borders (currentColor at 55%, for 3:1 contrast)
+ */
+
+:where(.zodal-dials-panel) {
+  display: grid;
+  gap: var(--zodal-dials-gap, 1rem);
+  min-width: 0;
+}
+
+:where(.zodal-dials-group) {
+  display: grid;
+  gap: var(--zodal-dials-gap, 1rem);
+  min-width: 0;
+}
+
+:where(.zodal-dials-group-title) {
+  margin: 0;
+  font-size: 0.8em;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  opacity: 0.7;
+}
+
+:where(.zodal-dials-field) {
+  display: grid;
+  gap: 0.35rem;
+  min-width: 0;
+}
+
+:where(.zodal-dials-label) {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 600;
+}
+
+:where(.zodal-dials-description) {
+  margin: 0;
+  font-size: 0.875em;
+  opacity: 0.75;
+}
+
+:where(.zodal-dials-control) {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  min-height: var(--zodal-dials-target, 44px);
+  min-width: 0;
+}
+
+:where(.zodal-dials-badge) {
+  padding: 0.1em 0.5em;
+  border: 1px solid currentColor;
+  border-radius: 999px;
+  font-size: 0.75em;
+  font-weight: normal;
+  opacity: 0.7;
+}
+
+/* Widgets that wrap their input (secret status + field, raw-JSON note + editor) take the row width. */
+:where(.zodal-dials-secret-wrap, .zodal-dials-json-wrap) {
+  display: flex;
+  flex: 1 1 12em;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 0;
+}
+
+:where(.zodal-dials-json-note) {
+  flex-basis: 100%;
+  opacity: 0.75;
+}
+
+:where(.zodal-dials-secret-status) {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Text-like inputs: full touch height, and 16px or more so iOS does not zoom in on focus. */
+:where(
+  .zodal-dials-search,
+  .zodal-dials-text,
+  .zodal-dials-number,
+  .zodal-dials-select,
+  .zodal-dials-secret,
+  .zodal-dials-textarea,
+  .zodal-dials-object,
+  .zodal-dials-array,
+  .zodal-dials-rawjson
+) {
+  box-sizing: border-box;
+  flex: 1 1 12em;
+  min-width: 0;
+  max-width: 100%;
+  min-height: var(--zodal-dials-target, 44px);
+  padding: 0.5em 0.75em;
+  border: 1px solid var(--zodal-dials-border, color-mix(in srgb, currentColor 55%, transparent));
+  border-radius: var(--zodal-dials-radius, 8px);
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: max(16px, 1em);
+}
+
+:where(.zodal-dials-reset, .zodal-dials-advanced-title) {
+  min-height: var(--zodal-dials-target, 44px);
+  cursor: pointer;
+}
+
+:where(.zodal-dials-reset) {
+  min-width: var(--zodal-dials-target, 44px);
+  padding: 0 0.9em;
+  border: 1px solid var(--zodal-dials-border, color-mix(in srgb, currentColor 55%, transparent));
+  border-radius: var(--zodal-dials-radius, 8px);
+  background: transparent;
+  color: inherit;
+  font: inherit;
+}
+
+/* Enum choices: a row of chips over native radios (keyboard and screen readers still see radios). */
+:where(.zodal-dials-radio) {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+:where(.zodal-dials-choice) {
+  position: relative;
+  display: inline-flex;
+}
+
+:where(.zodal-dials-choice > input) {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+:where(.zodal-dials-choice-label) {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4em;
+  min-height: var(--zodal-dials-target, 44px);
+  padding: 0 1em;
+  border: 1px solid var(--zodal-dials-border, color-mix(in srgb, currentColor 55%, transparent));
+  border-radius: 999px;
+}
+
+:where(.zodal-dials-choice > input:checked + .zodal-dials-choice-label) {
+  border-color: var(--zodal-dials-accent, #2563eb);
+  background: var(--zodal-dials-accent, #2563eb);
+  color: var(--zodal-dials-on-accent, #fff);
+  font-weight: 600;
+}
+
+/* A check mark, so the selected chip does not rely on colour alone (empty alt text: not announced). */
+:where(.zodal-dials-choice > input:checked + .zodal-dials-choice-label)::before {
+  content: '✓' / '';
+}
+
+:where(.zodal-dials-choice > input:focus-visible + .zodal-dials-choice-label) {
+  outline: 2px solid var(--zodal-dials-accent, #2563eb);
+  outline-offset: 2px;
+}
+
+:where(.zodal-dials-choice > input:disabled + .zodal-dials-choice-label) {
+  opacity: 0.5;
+}
+
+/* Switch: a checkbox with role="switch", drawn as a toggle. */
+:where(.zodal-dials-switch) {
+  position: relative;
+  flex: none;
+  width: 52px;
+  height: 32px;
+  margin: 0;
+  border-radius: 999px;
+  background: color-mix(in srgb, currentColor 45%, transparent);
+  appearance: none;
+  cursor: pointer;
+  transition: background-color 0.15s;
+}
+
+:where(.zodal-dials-switch)::before {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: Canvas;
+  content: '';
+  transition: transform 0.15s;
+}
+
+:where(.zodal-dials-switch:checked) {
+  background: var(--zodal-dials-accent, #2563eb);
+}
+
+:where(.zodal-dials-switch:checked)::before {
+  transform: translateX(20px);
+}
+
+:where(.zodal-dials-switch:focus-visible, .zodal-dials-color:focus-visible, .zodal-dials-slider:focus-visible) {
+  outline: 2px solid var(--zodal-dials-accent, #2563eb);
+  outline-offset: 2px;
+}
+
+:where(.zodal-dials-switch:disabled, .zodal-dials-slider:disabled, .zodal-dials-color:disabled) {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Slider: a large thumb on a thin track, with the formatted value beside it. */
+:where(.zodal-dials-slider-wrap) {
+  display: flex;
+  flex: 1 1 12em;
+  align-items: center;
+  gap: 0.75rem;
+  min-width: 0;
+}
+
+:where(.zodal-dials-slider) {
+  flex: 1;
+  min-width: 0;
+  height: var(--zodal-dials-target, 44px);
+  margin: 0;
+  background: transparent;
+  appearance: none;
+  cursor: pointer;
+}
+
+:where(.zodal-dials-slider)::-webkit-slider-runnable-track {
+  height: var(--zodal-dials-track, 6px);
+  border-radius: 999px;
+  background: color-mix(in srgb, currentColor 45%, transparent);
+}
+
+:where(.zodal-dials-slider)::-moz-range-track {
+  height: var(--zodal-dials-track, 6px);
+  border-radius: 999px;
+  background: color-mix(in srgb, currentColor 45%, transparent);
+}
+
+:where(.zodal-dials-slider)::-webkit-slider-thumb {
+  width: var(--zodal-dials-thumb, 28px);
+  height: var(--zodal-dials-thumb, 28px);
+  margin-top: calc((var(--zodal-dials-track, 6px) - var(--zodal-dials-thumb, 28px)) / 2);
+  border: 2px solid Canvas;
+  border-radius: 50%;
+  background: var(--zodal-dials-accent, #2563eb);
+  box-shadow: 0 1px 3px color-mix(in srgb, currentColor 40%, transparent);
+  appearance: none;
+}
+
+:where(.zodal-dials-slider)::-moz-range-thumb {
+  box-sizing: border-box;
+  width: var(--zodal-dials-thumb, 28px);
+  height: var(--zodal-dials-thumb, 28px);
+  border: 2px solid Canvas;
+  border-radius: 50%;
+  background: var(--zodal-dials-accent, #2563eb);
+  box-shadow: 0 1px 3px color-mix(in srgb, currentColor 40%, transparent);
+}
+
+:where(.zodal-dials-slider-value) {
+  min-width: 3.5em;
+  font-variant-numeric: tabular-nums;
+  text-align: end;
+}
+
+:where(.zodal-dials-color) {
+  box-sizing: border-box;
+  width: calc(var(--zodal-dials-target, 44px) * 1.5);
+  height: var(--zodal-dials-target, 44px);
+  padding: 3px;
+  border: 1px solid var(--zodal-dials-border, color-mix(in srgb, currentColor 55%, transparent));
+  border-radius: var(--zodal-dials-radius, 8px);
+  background: transparent;
+  cursor: pointer;
+}
+
+/* Advanced settings: one disclosure after the essentials. */
+:where(.zodal-dials-advanced > .zodal-dials-group + .zodal-dials-group) {
+  margin-top: var(--zodal-dials-gap, 1rem);
+}
+
+:where(.zodal-dials-advanced-title) {
+  /* list-item keeps the native open/closed marker (flex would drop it) */
+  display: list-item;
+  padding-block: 0.6em;
+  box-sizing: border-box;
+  font-weight: 600;
+}
+
+:where(.zodal-dials-advanced[open] > .zodal-dials-advanced-title) {
+  margin-bottom: var(--zodal-dials-gap, 1rem);
+}
+
+/* Forced colours (Windows high contrast): system colours carry every state. */
+@media (forced-colors: active) {
+  :where(.zodal-dials-choice > input:checked + .zodal-dials-choice-label) {
+    border-color: Highlight;
+    background: Highlight;
+    color: HighlightText;
+    forced-color-adjust: none;
+  }
+
+  :where(.zodal-dials-switch) {
+    border: 1px solid ButtonText;
+    forced-color-adjust: none;
+    background: Canvas;
+  }
+
+  :where(.zodal-dials-switch)::before {
+    background: ButtonText;
+  }
+
+  :where(.zodal-dials-switch:checked) {
+    background: Highlight;
+  }
+
+  :where(.zodal-dials-switch:checked)::before {
+    background: HighlightText;
+  }
+
+  :where(.zodal-dials-slider)::-webkit-slider-thumb {
+    background: ButtonText;
+  }
+
+  :where(.zodal-dials-slider)::-moz-range-thumb {
+    background: ButtonText;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :where(.zodal-dials-switch),
+  :where(.zodal-dials-switch)::before {
+    transition: none;
+  }
+}

@@ -47,3 +47,22 @@ describe('M1 — duplicate enum values do not trigger a React key warning', () =
     expect(errors.join(' ')).not.toMatch(/same key/i);
   });
 });
+
+describe('display affordances from the headless config (step, unit, enum labels)', () => {
+  it('a slider carries the step and shows the unit', async () => {
+    const { SliderControl } = await import('../src/widgets.js');
+    const { container } = render(
+      h(SliderControl, { field: cfg({ widget: 'slider', zodType: 'number', bounds: { min: 8, max: 32 }, step: 2, unit: 'px' }), state: st(14) }),
+    );
+    expect(container.querySelector('input[type=range]')?.getAttribute('step')).toBe('2');
+    expect(container.querySelector('output')?.textContent).toBe('14px');
+  });
+
+  it('a select shows enum labels and keeps the values', () => {
+    const { container } = render(
+      h(SelectControl, { field: cfg({ widget: 'select', zodType: 'enum', enumValues: ['above', 'inline'], enumLabels: { inline: 'In the line' } }), state: st('inline') }),
+    );
+    const option = container.querySelector('option[value=inline]');
+    expect(option?.textContent).toBe('In the line');
+  });
+});
