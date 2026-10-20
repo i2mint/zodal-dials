@@ -41,6 +41,13 @@ function useNativeChange(ref: RefObject<HTMLInputElement | null>, onCommit: (inp
   }, [ref]);
 }
 
+/** Drop a control's in-flight (`moving`) value once the saved value changes: after a commit lands
+ *  (so the thumb does not snap back while an async store catches up), and on any outside update
+ *  (reset, undo). Blur drops it too, for a move that ended where it began or a rejected commit. */
+function useSettledValue<T>(saved: unknown, setMoving: (v: T | undefined) => void): void {
+  useEffect(() => setMoving(undefined), [saved, setMoving]);
+}
+
 /** A React `onChange` from a native `change` is the commit, handled by `useNativeChange`. */
 const isCommitEvent = (e: ChangeEvent<HTMLInputElement>): boolean => e.nativeEvent.type === 'change';
 
@@ -101,8 +108,8 @@ export const SliderControl: SettingControl = (p) => {
   const ref = useRef<HTMLInputElement>(null);
   // The value under the thumb while it moves; undefined when at rest (the saved value shows).
   const [moving, setMoving] = useState<number | undefined>(undefined);
+  useSettledValue(p.state.value, setMoving);
   useNativeChange(ref, (input) => {
-    setMoving(undefined);
     const v = decodeNumber(input.value);
     if (v !== undefined) p.onChange?.(v);
   });
@@ -123,6 +130,7 @@ export const SliderControl: SettingControl = (p) => {
       step: p.field.step ?? 'any',
       'aria-valuetext': text || undefined,
       disabled: isDisabled(p),
+      onBlur: () => setMoving(undefined),
       onChange: (e: ChangeEvent<HTMLInputElement>) => {
         if (isCommitEvent(e)) return;
         const v = decodeNumber(e.target.value);
@@ -139,10 +147,8 @@ export const SliderControl: SettingControl = (p) => {
 export const ColorControl: SettingControl = (p) => {
   const ref = useRef<HTMLInputElement>(null);
   const [moving, setMoving] = useState<string | undefined>(undefined);
-  useNativeChange(ref, (input) => {
-    setMoving(undefined);
-    p.onChange?.(input.value);
-  });
+  useSettledValue(p.state.value, setMoving);
+  useNativeChange(ref, (input) => p.onChange?.(input.value));
   return h('input', {
     ref,
     type: 'color',
@@ -150,6 +156,7 @@ export const ColorControl: SettingControl = (p) => {
     className: 'zodal-dials-color',
     value: moving ?? toHexColor(p.state.value) ?? toHexColor(p.field.defaultValue) ?? '#000000',
     disabled: isDisabled(p),
+    onBlur: () => setMoving(undefined),
     onChange: (e: ChangeEvent<HTMLInputElement>) => {
       if (isCommitEvent(e)) return;
       setMoving(e.target.value);

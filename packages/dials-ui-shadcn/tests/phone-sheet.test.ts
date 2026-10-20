@@ -211,3 +211,23 @@ describe('styles.css', () => {
     expect(produced.size).toBeGreaterThan(15);
   });
 });
+
+describe('review hardening', () => {
+  it('a slider keeps the moved value after release until the saved value catches up, then follows it', () => {
+    const { container, rerender } = render(h(SliderControl, { field: slider(), state: st(0.8), onChange: () => {} }));
+    const range = container.querySelector('input[type=range]') as HTMLInputElement;
+    fireEvent.input(range, { target: { value: '0.5' } });
+    fireEvent.change(range, { target: { value: '0.5' } });
+    expect(container.querySelector('output')?.textContent).toBe('0.5'); // no snap back while the store is async
+    rerender(h(SliderControl, { field: slider(), state: st(0.3), onChange: () => {} }));
+    expect(container.querySelector('output')?.textContent).toBe('0.3'); // an outside update (reset/undo) wins
+  });
+
+  it('blur drops an in-flight value that never committed', () => {
+    const { container } = render(h(SliderControl, { field: slider(), state: st(0.8) }));
+    const range = container.querySelector('input[type=range]') as HTMLInputElement;
+    fireEvent.input(range, { target: { value: '0.5' } });
+    fireEvent.blur(range);
+    expect(container.querySelector('output')?.textContent).toBe('0.8');
+  });
+});

@@ -91,7 +91,9 @@ export function SettingsPanel(props: SettingsPanelProps): ReactElement {
   const [advancedOpen, setAdvancedOpen] = useState(false);
   const reg = useMemo(() => registry ?? createShadcnSettingsRegistry(), [registry]);
   const disclose = advanced !== 'inline';
-  const q = query.trim().toLowerCase();
+  const searching = showsSearch(form.fields.length, rest);
+  // A query applies only while its box is shown (the box can disappear under `search: 'auto'`).
+  const q = searching ? query.trim().toLowerCase() : '';
   const matches = (f: SettingFieldConfig): boolean =>
     !q || f.key.toLowerCase().includes(q) || f.label.toLowerCase().includes(q) || (f.description ?? '').toLowerCase().includes(q);
 
@@ -135,7 +137,7 @@ export function SettingsPanel(props: SettingsPanelProps): ReactElement {
   };
 
   const children: ReactElement[] = [];
-  if (showsSearch(form.fields.length, rest)) {
+  if (searching) {
     children.push(
       h('input', {
         key: '__search',
@@ -159,7 +161,9 @@ export function SettingsPanel(props: SettingsPanelProps): ReactElement {
         h(
           'details',
           {
-            key: '__advanced',
+            // Remount when a search starts or ends, so the DOM's open state follows the prop even if
+            // the reader collapsed the disclosure mid-search.
+            key: q ? '__advanced-search' : '__advanced',
             className: 'zodal-dials-advanced',
             open: q ? true : advancedOpen,
             onToggle: (e: SyntheticEvent<HTMLDetailsElement>) => {

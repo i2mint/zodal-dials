@@ -5,6 +5,11 @@
       "dependsOn": ["^build"],
       "outputs": ["dist/**"]
     },
+    "@zodal/dials-ui-shadcn#build": {
+      "dependsOn": ["^build"],
+      "outputs": ["dist/**"],
+      "inputs": ["$TURBO_DEFAULT$", "$TURBO_ROOT$/packages/dials-ui-vanilla/styles.css"]
+    },
     "test": {
       "dependsOn": ["build"]
     },
