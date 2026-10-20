@@ -59,9 +59,13 @@ zodal-dials/
 
 The root `package.json` is `private: true`; its scripts delegate to turbo:
 `build` → `turbo build`, `test` → `turbo test`, `lint` → `turbo lint`,
-`typecheck` → `turbo typecheck`, and `test:integration` → `vitest run --config tests/vitest.config.ts`
-(the cross-package suite, distinct from per-package `turbo test`). Root devDependencies pin
-`turbo`, `typescript`, `vitest`, and `zod` for the workspace.
+`typecheck` → `turbo typecheck`, `test:integration` → `vitest run --config tests/vitest.config.ts`
+(the cross-package suite, distinct from per-package `turbo test`), and `test:browser` → the
+Playwright checks in `tests/browser/` (layout jsdom cannot see, e.g. the slider ghost thumb against
+the native thumb, both renderers, Chromium + Firefox; needs `pnpm build` first and the browsers via
+`pnpm exec playwright-core install chromium firefox`). Root devDependencies pin `turbo`,
+`typescript`, `vitest`, and `zod` for the workspace, plus `playwright-core`, `esbuild`, `react` and
+the two renderers for the browser checks.
 
 Cross-package deps inside the monorepo use `"@zodal/dials-core": "workspace:*"` (pnpm
 rewrites to the published version at `pnpm publish` time). A package's dependency on the
@@ -164,7 +168,8 @@ Single workflow, **two jobs**, identical shape to zodal:
 - **`validate`** (every push/PR to `main`, unless commit msg has `[skip ci]`):
   `checkout@v6` → `pnpm/action-setup@v5` → `setup-node@v6` (node 22, pnpm cache) →
   `pnpm install --frozen-lockfile` → `pnpm typecheck` → `pnpm build` → `pnpm test`
-  → `pnpm test:integration`.
+  → `pnpm test:integration` → `playwright-core install --with-deps chromium firefox` →
+  `pnpm test:browser`.
   - The **integration-test step is now ENABLED** in `ci.yml` (`pnpm test:integration`) — no longer
     commented out — since the packages and the root `tests/vitest.config.ts` exist. Keep it green; a
     new package that touches a cross-package contract should add to the root suite.
@@ -222,7 +227,8 @@ trap.
 - Every module opens with a top-level docstring (auto-extracted for docs).
 - ESM `.js` extensions on all internal imports; `import type` for type-only.
 - Tests co-located per package in `tests/*.test.ts`; cross-package integration tests live in the
-  root `tests/` (run via `pnpm test:integration`). Heavy/manual tests excluded from CI.
+  root `tests/` (run via `pnpm test:integration`); real-browser layout checks live in
+  `tests/browser/` (run via `pnpm test:browser`). Heavy/manual tests excluded from CI.
 
 ## Files routed into this skill (model on these)
 
