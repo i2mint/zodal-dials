@@ -203,7 +203,11 @@ test. The UI/store ones (full list + the secrets/patch/store gotchas in
 - `styles.css` (package export `./styles.css`): every rule in `:where()`, tokens
   `--zodal-dials-{target,thumb,track,gap,radius,accent,on-accent,border}`, never a font family
   (a test guards it).
-- The shadcn renderer honours `step`/`unit`/`enumLabels` but not yet preview/format/colour/disclosure.
+- The shadcn renderer has the same contract in React terms: `onPreview`/`onChange` (commit wired to the
+  native `change` event), `format`, `decorateOption` (returns a ReactNode), `<input type=color>`, chips,
+  the advanced disclosure and `search: 'auto'`; it ships the vanilla `styles.css` as `./styles.css`.
+- The display rules both renderers share (`formatValue`, `optionLabel`, `toHexColor`, `showsSearch`)
+  live in headless `@zodal/dials-ui` (`display.ts`); a unit sits beside a number input in both.
 
 ## Reference implementations (BUILT, in this repo)
 

@@ -5,7 +5,8 @@ import { defineDials } from '@zodal/dials-core';
 import type { ResolvedFieldAffordance } from '@zodal/core';
 import { toSettingsForm, toFieldStates } from '@zodal/dials-ui';
 import { createVanillaSettingsRegistry } from '../src/registry.js';
-import { renderField, renderSettingsPanel, showsSearch, DEFAULT_SEARCH_THRESHOLD } from '../src/panel.js';
+import { renderField, renderSettingsPanel } from '../src/panel.js';
+import { showsSearch, DEFAULT_SEARCH_THRESHOLD } from '../src/index.js';
 import { cfg, st, fire } from './fixture.js';
 
 const stub = (zodType: string) => ({ zodType }) as unknown as ResolvedFieldAffordance;

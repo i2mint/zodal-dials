@@ -19,10 +19,11 @@ const dials = defineDials(
 );
 
 function renderPanel(overrides: { onChange?: ReturnType<typeof vi.fn>; onReset?: ReturnType<typeof vi.fn> } = {}) {
+  // a 4-setting fixture: below the 'auto' search threshold, so the search tests ask for the box
   const result = dials.resolve([{ scope: 'user', layer: { 'editor.fontSize': 20, 'network.apiKey': 'SUPER-SECRET' } }], { maskSecrets: true });
   const form = toSettingsForm(dials, { result });
   const states = toFieldStates(form.fields, result, ['editor.fontSize']);
-  return render(h(SettingsPanel, { form, states, ...overrides }));
+  return render(h(SettingsPanel, { form, states, search: true, ...overrides }));
 }
 
 describe('SettingsPanel', () => {
