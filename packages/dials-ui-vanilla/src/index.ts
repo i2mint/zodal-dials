@@ -33,5 +33,5 @@ export {
 
 export { createVanillaSettingsRegistry, widgetIs } from './registry.js';
 
-export { renderField, renderSettingsPanel } from './panel.js';
+export { renderField, renderSettingsPanel, showsSearch, DEFAULT_SEARCH_THRESHOLD } from './panel.js';
 export type { RenderOptions } from './panel.js';

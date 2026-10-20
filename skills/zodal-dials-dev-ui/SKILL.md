@@ -198,7 +198,8 @@ test. The UI/store ones (full list + the secrets/patch/store gotchas in
 - Radio = chips: `label.zodal-dials-choice > input[type=radio] + span.zodal-dials-choice-label`.
 - `renderSettingsPanel`: advanced fields go after the essentials in ONE
   `details.zodal-dials-advanced` (`advanced: 'inline'` opts out); search opens it on a match inside,
-  hides empty sections, restores the reader's open state on clear.
+  hides empty sections, restores the reader's open state on clear. The search box defaults to
+  `search: 'auto'`: shown only above `searchThreshold` (`DEFAULT_SEARCH_THRESHOLD` = 15) settings.
 - `styles.css` (package export `./styles.css`): every rule in `:where()`, tokens
   `--zodal-dials-{target,thumb,track,gap,radius,accent,on-accent,border}`, never a font family
   (a test guards it).
