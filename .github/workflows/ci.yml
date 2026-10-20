@@ -49,6 +49,13 @@ jobs:
       - name: Integration tests
         run: pnpm test:integration
 
+      # Layout checks jsdom cannot make (the slider ghost thumb, #29), in real Chromium and Firefox.
+      - name: Install Playwright browsers
+        run: pnpm exec playwright-core install --with-deps chromium firefox
+
+      - name: Browser tests
+        run: pnpm test:browser
+
   gate:
     name: Release gate
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'

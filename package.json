@@ -6,11 +6,18 @@
     "test": "turbo test",
     "test:integration": "vitest run --config tests/vitest.config.ts",
     "lint": "turbo lint",
-    "typecheck": "turbo typecheck"
+    "typecheck": "turbo typecheck",
+    "test:browser": "node tests/browser/ghost-thumb.browser.mjs"
   },
   "devDependencies": {
     "@zodal/dials-core": "workspace:*",
     "@zodal/dials-ui": "workspace:*",
+    "@zodal/dials-ui-shadcn": "workspace:*",
+    "@zodal/dials-ui-vanilla": "workspace:*",
+    "esbuild": "^0.27.7",
+    "playwright-core": "1.63.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
     "turbo": "^2.0.0",
     "typescript": "^5.7.0",
     "vitest": "^3.0.0",
