@@ -43,9 +43,9 @@ export interface SettingFieldConfig {
   enumLabels?: Record<string, string>;
   bounds?: { min?: number; max?: number };
   /** The increment a number moves by: `.meta({ step })`, else Zod `.multipleOf()`, else 1 for an
-   *  `.int()`, else (for a slider) a round step of about 1/100 of the range. */
+   *  `.int()`, else (for a slider only) a round step of about 1/100 of the range. */
   step?: number;
-  /** A unit shown after a number's value (`.meta({ unit: 'px' })`). Renderers may format further. */
+  /** A unit for a number's displayed value (`.meta({ unit: 'px' })`), shown in a slider's readout. */
   unit?: string;
   /** Facet ids this setting belongs to (multi-membership). */
   facets: string[];

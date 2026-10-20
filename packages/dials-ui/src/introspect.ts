@@ -44,14 +44,15 @@ function roundStepFor(min: number, max: number): number | undefined {
 }
 
 /** The step a number moves by: explicit `.meta({ step })`, else Zod `.multipleOf()`, else 1 for an
- *  integer, else (when the number is fully bounded) a round step of ~1/100 of the range. */
-function stepFor(field: z.ZodType, meta: Record<string, unknown>, bounds?: { min?: number; max?: number }): number | undefined {
+ *  integer, else — for a SLIDER only — a round step of ~1/100 of the range (a number input keeps
+ *  free entry). Declare a step whenever the guess is wrong; a declared step always wins. */
+function stepFor(field: z.ZodType, meta: Record<string, unknown>, bounds: { min?: number; max?: number } | undefined, isSlider: boolean): number | undefined {
   if (typeof meta.step === 'number' && meta.step > 0 && Number.isFinite(meta.step)) return meta.step;
   const inner = unwrapZodSchema(field) as unknown as { _zod?: { bag?: { multipleOf?: unknown; format?: unknown } } };
   const bag = inner._zod?.bag ?? {};
   if (typeof bag.multipleOf === 'number' && bag.multipleOf > 0) return bag.multipleOf;
   if (typeof bag.format === 'string' && /int/.test(bag.format)) return 1;
-  if (bounds?.min !== undefined && bounds.max !== undefined) return roundStepFor(bounds.min, bounds.max);
+  if (isSlider && bounds?.min !== undefined && bounds.max !== undefined) return roundStepFor(bounds.min, bounds.max);
   return undefined;
 }
 
@@ -84,7 +85,8 @@ export function describeSettings<T extends z.ZodObject<z.ZodRawShape>>(
     const facets = uniqueStrings([...metaFacets, ...(options.facets?.[key] ?? [])]);
     const advanced = facets.includes('advanced') || meta.advanced === true;
 
-    const step = field && zodType === 'number' ? stepFor(field, meta, bounds) : undefined;
+    const widget = widgetKindFor({ zodType, sensitivity, bounds, enumValues, metaWidget: meta.editWidget });
+    const step = field && zodType === 'number' ? stepFor(field, meta, bounds, widget === 'slider') : undefined;
     const enumLabels = readEnumLabels(meta.enumLabels, enumValues);
     const unit = typeof meta.unit === 'string' && meta.unit !== '' ? meta.unit : undefined;
 
@@ -94,7 +96,7 @@ export function describeSettings<T extends z.ZodObject<z.ZodRawShape>>(
       key,
       label: typeof meta.title === 'string' ? meta.title : humanizeFieldName(key),
       description: typeof meta.description === 'string' ? meta.description : undefined,
-      widget: widgetKindFor({ zodType, sensitivity, bounds, enumValues, metaWidget: meta.editWidget }),
+      widget,
       zodType,
       required,
       readOnly: meta.readOnly === true || meta.editable === false,

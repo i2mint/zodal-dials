@@ -68,7 +68,7 @@ register a control per widget kind plus the terminal `rawJson`.
 
 **Display affordances on `SettingFieldConfig`** (read in `introspect.ts`, all optional, plain data):
 `step` (`.meta({ step })` → Zod `.multipleOf()` → `1` for `.int()` → for a fully bounded number a
-round `10^round(log10(span/100))`), `enumLabels` (`.meta({ enumLabels: { value: 'Label' } })`, only
+round `10^round(log10(span/100))`, sliders only: a number input keeps free entry), `enumLabels` (`.meta({ enumLabels: { value: 'Label' } })`, only
 string labels of real enum values kept; also indexed for search), `unit` (`.meta({ unit })`, appended
 verbatim). `color` is reached only via `.meta({ editWidget: 'color' })`. A formatting *function* is
 never in the headless config (not serializable): renderers take it as a hook.

@@ -141,8 +141,11 @@ export function renderSettingsPanel(
       (a, b) => (groupMeta.get(a)?.order ?? 500) - (groupMeta.get(b)?.order ?? 500) || a.localeCompare(b),
     );
     return ids.map((id) => {
-      const title = groupMeta.get(id)?.title ?? humanize(id);
-      const section = el('section', { class: 'zodal-dials-group', 'data-group': id }, el('h3', { class: 'zodal-dials-group-title' }, title));
+      // The catch-all bucket is titled like toGroups' (`Other`), and untitled when it is the only
+      // section here: a flat sheet (or a flat advanced disclosure) needs no heading over everything.
+      const title = groupMeta.get(id)?.title ?? (id === '_ungrouped' ? 'Other' : humanize(id));
+      const heading = id === '_ungrouped' && ids.length === 1 ? null : el('h3', { class: 'zodal-dials-group-title' }, title);
+      const section = el('section', { class: 'zodal-dials-group', 'data-group': id }, heading);
       for (const f of buckets.get(id) ?? []) section.appendChild(renderField(f, states[f.key] ?? emptyState(), opts));
       return section;
     });

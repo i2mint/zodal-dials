@@ -13,6 +13,7 @@ const dials = defineDials(
     chordSize: z.number().min(8).max(32).default(14).meta({ step: 2, unit: 'px' }),
     span: z.number().min(0).max(1000).default(10),
     free: z.number().default(3),
+    typed: z.number().min(0).max(1000).default(15).meta({ editWidget: 'number' }),
     placement: z
       .enum(['above', 'inline'])
       .default('above')
@@ -33,6 +34,9 @@ describe('step', () => {
   });
   it('leaves an unbounded, undeclared number without a step', () => {
     expect(byKey.free.step).toBeUndefined();
+    // a bounded number shown as a number input keeps free entry: the ~1/100 guess is for sliders only
+    expect(byKey.typed.widget).toBe('number');
+    expect(byKey.typed.step).toBeUndefined();
     expect('step' in byKey.placement).toBe(false);
   });
 });

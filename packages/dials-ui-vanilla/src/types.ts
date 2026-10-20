@@ -19,11 +19,12 @@ export interface FieldHandlers {
 
 /** Presentation hooks: how values and options are shown, without replacing a widget. */
 export interface FieldPresentation {
-  /** Format a value for display (a slider's readout and its `aria-valuetext`). Return `undefined`
+  /** Format a value for display — used by the slider (its readout and `aria-valuetext`). Return `undefined`
    *  to fall back to the default (`formatValue`: rounded to the step, plus the field's unit). */
   format?: (field: SettingFieldConfig, value: unknown) => string | undefined;
   /** Decorate one choice of an enum shown as chips (e.g. a colour swatch, a font sample): receives
-   *  the option's label element after it is built. Not applied to `<select>` options. */
+   *  the option's label element after it is built. Chips only: an enum of more than 4 values is a
+   *  `<select>` unless declared `.meta({ editWidget: 'radio' })`, and `<option>`s cannot be decorated. */
   decorateOption?: (field: SettingFieldConfig, value: string, label: HTMLElement) => void;
 }
 

@@ -58,9 +58,24 @@ describe('slider: step, preview, commit, format', () => {
   });
 
   it('a number input carries the step too', () => {
-    const input = renderNumber(cfg({ widget: 'number', zodType: 'number', step: 0.1 }), st({ value: 1 }), {}) as HTMLInputElement;
+    const input = renderNumber(cfg({ widget: 'number', zodType: 'number', step: 0.1, bounds: { min: 0 } }), st({ value: 1 }), {}) as HTMLInputElement;
     expect(input.getAttribute('step')).toBe('0.1');
     expect(input.getAttribute('inputmode')).toBe('decimal');
+  });
+
+  it('offers no decimal keypad (no minus key on iOS) when the value can be negative', () => {
+    const input = renderNumber(cfg({ widget: 'number', zodType: 'number', step: 0.1, bounds: { min: -5 } }), st({ value: 1 }), {}) as HTMLInputElement;
+    expect(input.getAttribute('inputmode')).toBeNull();
+  });
+
+  it('the readout shows the value the thumb shows, and the output is not a second live region', () => {
+    // the browser sanitizes a range value (clamped to its bounds, snapped to its step)
+    const wrap = renderSlider(cfg({ widget: 'slider', zodType: 'number', bounds: { min: 0, max: 100 }, step: 10 }), st({ value: 140 }), {});
+    const range = wrap.querySelector('input') as HTMLInputElement;
+    expect(range.value).toBe('100');
+    expect(wrap.querySelector('output')?.textContent).toBe('100');
+    expect(range.getAttribute('aria-valuetext')).toBe('100');
+    expect(wrap.querySelector('output')?.getAttribute('aria-live')).toBe('off');
   });
 });
 
@@ -167,6 +182,17 @@ describe('advanced settings behind one disclosure', () => {
   });
 });
 
+describe('a flat sheet', () => {
+  it('has no "Ungrouped"/"Other" heading over everything', () => {
+    const flat = defineDials(z.object({ a: z.boolean().default(true), b: z.string().default('x'), c: z.boolean().default(false).meta({ advanced: true }) }));
+    const result = flat.resolve([], {});
+    const form = toSettingsForm(flat, { result });
+    const panel = renderSettingsPanel(form, toFieldStates(form.fields, result));
+    expect(panel.querySelectorAll('h3').length).toBe(0);
+    expect(panel.querySelectorAll('details .zodal-dials-field').length).toBe(1);
+  });
+});
+
 describe('styles.css', () => {
   const css = readFileSync(join(__dirname, '..', 'styles.css'), 'utf8');
   const rules = css.replace(/\/\*[\s\S]*?\*\//g, '');
@@ -180,6 +206,43 @@ describe('styles.css', () => {
     expect(rules).toContain('var(--zodal-dials-target, 44px)');
     expect(rules).toContain('var(--zodal-dials-thumb, 28px)');
     expect(rules).toContain('font-size: max(16px, 1em)');
+  });
+
+  it('styles every zodal-dials-* class the widgets and panel produce', () => {
+    const dials = defineDials(
+      z.object({
+        on: z.boolean().default(true).meta({ facets: ['a'] }),
+        pick: z.enum(['x', 'y']).default('x').meta({ facets: ['a'] }),
+        many: z.enum(['p', 'q', 'r', 's', 't']).default('p'),
+        level: z.number().min(0).max(1).default(0.5),
+        count: z.number().default(3),
+        name: z.string().default('n'),
+        notes: z.string().default('').meta({ editWidget: 'textarea' }),
+        ink: z.string().default('#000000').meta({ editWidget: 'color' }),
+        apiKey: z.string().optional(),
+        layout: z.object({ w: z.number() }).default({ w: 1 }),
+        tags: z.array(z.string()).default([]),
+        raw: z.string().default('').meta({ editWidget: 'rawJson', advanced: true }),
+      }),
+    );
+    const result = dials.resolve([{ scope: 'user', layer: { level: 0.7 } }], { maskSecrets: true });
+    const form = toSettingsForm(dials, { result });
+    const panel = renderSettingsPanel(form, toFieldStates(form.fields, result, ['level']));
+    const produced = new Set<string>();
+    for (const node of Array.from(panel.querySelectorAll('[class]'))) {
+      for (const c of Array.from(node.classList)) if (c.startsWith('zodal-dials-')) produced.add(c);
+    }
+    produced.add('zodal-dials-panel');
+    // Classes that are hooks for hosts, not styled here on purpose.
+    const optOut = new Set(['zodal-dials-source', 'zodal-dials-managed', 'zodal-dials-dirty']);
+    const unstyled = [...produced].filter((c) => !optOut.has(c) && !new RegExp(`\\.${c}(?![\\w-])`).test(rules));
+    expect(unstyled).toEqual([]);
+    expect(produced.size).toBeGreaterThan(20);
+  });
+
+  it('keeps the native disclosure marker on the Advanced summary', () => {
+    const summaryRule = /\.zodal-dials-advanced-title\)\s*\{([^}]*)\}/.exec(rules.slice(rules.indexOf('list-item') - 200))?.[1] ?? '';
+    expect(summaryRule).toContain('display: list-item');
   });
 
   it('is exported by the package', () => {

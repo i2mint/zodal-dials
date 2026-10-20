@@ -100,7 +100,8 @@ export const renderNumber: SettingRenderFn = (field, state, h) =>
     min: field.bounds?.min,
     max: field.bounds?.max,
     step: field.step,
-    inputmode: field.step !== undefined && field.step < 1 ? 'decimal' : undefined,
+    // iOS's decimal keypad has no minus key: only offer it when the value cannot be negative.
+    inputmode: field.step !== undefined && field.step < 1 && (field.bounds?.min ?? -1) >= 0 ? 'decimal' : undefined,
     disabled: isDisabled(field, state),
     onchange: (e: Event) => {
       const v = decodeNumber((e.target as HTMLInputElement).value);
@@ -109,7 +110,8 @@ export const renderNumber: SettingRenderFn = (field, state, h) =>
   });
 
 export const renderSlider: SettingRenderFn = (field, state, h) => {
-  const output = el('output', { class: 'zodal-dials-slider-value', for: field.key }, display(field, state.value, h));
+  // aria-live off: the range's aria-valuetext is the one announcement (an <output> is a live region).
+  const output = el('output', { class: 'zodal-dials-slider-value', for: field.key, 'aria-live': 'off' });
   const input = el('input', {
     type: 'range',
     id: field.key,
@@ -118,7 +120,6 @@ export const renderSlider: SettingRenderFn = (field, state, h) => {
     max: field.bounds?.max,
     // Without a step a range input moves in steps of 1, so a 0.1..1 slider would have two positions.
     step: field.step ?? 'any',
-    'aria-valuetext': state.value === undefined ? undefined : display(field, state.value, h),
     disabled: isDisabled(field, state),
     oninput: (e: Event) => {
       const v = decodeNumber((e.target as HTMLInputElement).value);
@@ -133,8 +134,15 @@ export const renderSlider: SettingRenderFn = (field, state, h) => {
       if (v !== undefined) h.onChange?.(field.key, v);
     },
   });
-  // Set the value after min/max/step exist, or the browser clamps/snaps it against the defaults.
+  // Set the value after min/max/step exist, or the browser clamps/snaps it against the defaults; then
+  // show what the thumb shows (the browser may have snapped the stored value to the step).
   input.value = asText(state.value);
+  if (state.value !== undefined) {
+    const shown = decodeNumber(input.value) ?? state.value;
+    const text = display(field, shown, h);
+    output.textContent = text;
+    input.setAttribute('aria-valuetext', text);
+  }
   return el('span', { class: 'zodal-dials-slider-wrap' }, input, output);
 };
 
