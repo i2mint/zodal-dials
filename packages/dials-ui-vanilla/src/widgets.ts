@@ -1,7 +1,8 @@
 /**
  * Vanilla widget renderers — each produces the control element for a setting from its config +
  * current state, wiring change events to the handlers. Continuous controls (slider, colour) call
- * `onPreview` while they move and `onChange` once, on release. Enum choices show their display
+ * `onPreview` while they move and `onChange` once, on release; a moving slider shows a ghost thumb at
+ * the saved value. Enum choices show their display
  * labels (`enumLabels`); a short enum renders as a row of chips over native radios. A `secret` value
  * (a masked `SecretRef`) is shown as a status + a write-only field. Structured/unknown values fall
  * back to a raw JSON editor (the rawJson renderer states WHY). No framework; pure DOM.
@@ -9,7 +10,7 @@
 
 import { el } from './dom.js';
 import { isSecretRef } from '@zodal/dials-core';
-import { formatValue, optionLabel, toHexColor } from '@zodal/dials-ui';
+import { formatValue, optionLabel, sliderFraction, toHexColor } from '@zodal/dials-ui';
 import type { SettingFieldConfig, SettingFieldState } from '@zodal/dials-ui';
 import type { FieldPresentation, SettingRenderFn } from './types.js';
 
@@ -93,9 +94,18 @@ export const renderNumber: SettingRenderFn = (field, state, h) => {
     : input;
 };
 
+/** The ghost thumb: a faded marker at the saved value, shown while the thumb is away from it, so the
+ *  reader sees how far they moved and where to return. Decorative (the readout says the value). */
+function ghostThumb(field: SettingFieldConfig, saved: unknown): HTMLElement | null {
+  const at = sliderFraction(field, saved);
+  if (at === undefined) return null;
+  return el('span', { class: 'zodal-dials-slider-ghost', 'aria-hidden': 'true', hidden: true, style: `--zodal-dials-ghost-at: ${at}` });
+}
+
 export const renderSlider: SettingRenderFn = (field, state, h) => {
   // aria-live off: the range's aria-valuetext is the one announcement (an <output> is a live region).
   const output = el('output', { class: 'zodal-dials-slider-value', for: field.key, 'aria-live': 'off' });
+  const ghost = ghostThumb(field, state.value);
   const input = el('input', {
     type: 'range',
     id: field.key,
@@ -111,9 +121,12 @@ export const renderSlider: SettingRenderFn = (field, state, h) => {
       const text = display(field, v, h);
       output.textContent = text;
       input.setAttribute('aria-valuetext', text);
+      if (ghost) ghost.hidden = v === state.value;
       h.onPreview?.(field.key, v);
     },
+    // Commit on release (or per arrow-key step): the new value is the saved one, so the ghost goes.
     onchange: (e: Event) => {
+      if (ghost) ghost.hidden = true;
       const v = decodeNumber((e.target as HTMLInputElement).value);
       if (v !== undefined) h.onChange?.(field.key, v);
     },
@@ -127,7 +140,7 @@ export const renderSlider: SettingRenderFn = (field, state, h) => {
     output.textContent = text;
     input.setAttribute('aria-valuetext', text);
   }
-  return el('span', { class: 'zodal-dials-slider-wrap' }, input, output);
+  return el('span', { class: 'zodal-dials-slider-wrap' }, el('span', { class: 'zodal-dials-slider-track' }, input, ghost), output);
 };
 
 export const renderColor: SettingRenderFn = (field, state, h) => {

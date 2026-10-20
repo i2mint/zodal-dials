@@ -2,7 +2,8 @@
  * Renderer-neutral display rules every settings renderer shares, so the vanilla DOM and the React
  * renderers show the same thing: how a value reads (`formatValue`: rounded to the step, plus the
  * unit), what an enum option is called (`optionLabel`), the `#rrggbb` form a colour input needs
- * (`toHexColor`), and when a panel shows its search box (`showsSearch`).
+ * (`toHexColor`), where a value sits along a slider (`sliderFraction`, for the ghost thumb), and when
+ * a panel shows its search box (`showsSearch`).
  */
 
 import type { SettingFieldConfig } from './types.js';
@@ -40,6 +41,19 @@ export function toHexColor(value: unknown): string | undefined {
   if (/^#[0-9a-f]{6}$/.test(v)) return v;
   const short = /^#([0-9a-f])([0-9a-f])([0-9a-f])$/.exec(v);
   return short ? `#${short[1]}${short[1]}${short[2]}${short[2]}${short[3]}${short[3]}` : undefined;
+}
+
+/** Where `value` sits along a slider's track, from 0 (min) to 1 (max), clamped; undefined when the
+ *  field has no finite bounds or the value is not a finite number. A renderer places the ghost
+ *  thumb (the saved value, shown while dragging) with it: a native range's thumb centre travels from
+ *  half a thumb in from one end to half a thumb in from the other, so the centre is at
+ *  `thumb / 2 + fraction * (trackWidth - thumb)`. */
+export function sliderFraction(field: SettingFieldConfig, value: unknown): number | undefined {
+  const min = field.bounds?.min;
+  const max = field.bounds?.max;
+  if (typeof value !== 'number' || !Number.isFinite(value)) return undefined;
+  if (min === undefined || max === undefined || !Number.isFinite(min) || !Number.isFinite(max) || max <= min) return undefined;
+  return Math.min(1, Math.max(0, (value - min) / (max - min)));
 }
 
 /** The default `searchThreshold`: a form with more settings than this gets a search box under

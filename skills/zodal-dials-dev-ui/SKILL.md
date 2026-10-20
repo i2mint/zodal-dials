@@ -195,6 +195,9 @@ test. The UI/store ones (full list + the secrets/patch/store gotchas in
   `aria-valuetext`; `undefined` → `formatValue`: rounded to the step's decimals + unit) and
   `decorateOption(field, value, labelEl)` for enum chips. Widgets receive `WidgetContext` = both.
 - A slider sets `step` (or `'any'`), and sets `value` AFTER min/max/step (else the browser clamps).
+- Slider DOM: `span.zodal-dials-slider-wrap > span.zodal-dials-slider-track > (input + span.zodal-dials-slider-ghost)`
+  + `output`. The ghost marks the saved value while the thumb is away (`--zodal-dials-ghost-at` =
+  `sliderFraction`, CSS centre `thumb/2 + at*(100% - thumb)`; both engines' thumbs are border-box).
 - Radio = chips: `label.zodal-dials-choice > input[type=radio] + span.zodal-dials-choice-label`.
 - `renderSettingsPanel`: advanced fields go after the essentials in ONE
   `details.zodal-dials-advanced` (`advanced: 'inline'` opts out); search opens it on a match inside,
@@ -206,7 +209,7 @@ test. The UI/store ones (full list + the secrets/patch/store gotchas in
 - The shadcn renderer has the same contract in React terms: `onPreview`/`onChange` (commit wired to the
   native `change` event), `format`, `decorateOption` (returns a ReactNode), `<input type=color>`, chips,
   the advanced disclosure and `search: 'auto'`; it ships the vanilla `styles.css` as `./styles.css`.
-- The display rules both renderers share (`formatValue`, `optionLabel`, `toHexColor`, `showsSearch`)
+- The display rules both renderers share (`formatValue`, `optionLabel`, `toHexColor`, `sliderFraction`, `showsSearch`)
   live in headless `@zodal/dials-ui` (`display.ts`); a unit sits beside a number input in both.
 
 ## Reference implementations (BUILT, in this repo)

@@ -49,6 +49,18 @@ describe('slider: preview, commit, format', () => {
     expect(onChange.mock.calls).toEqual([[0.45]]);
   });
 
+  it('shows a ghost thumb at the saved value only while the thumb is away from it', () => {
+    const { container } = render(h(SliderControl, { field: slider({ bounds: { min: 0, max: 1 } }), state: st(0.25), onChange: () => {} }));
+    const range = container.querySelector('input[type=range]') as HTMLInputElement;
+    const ghost = () => container.querySelector('.zodal-dials-slider-track .zodal-dials-slider-ghost') as HTMLElement | null;
+    expect(ghost()).toBeNull();
+    fireEvent.input(range, { target: { value: '0.6' } });
+    expect(ghost()?.style.getPropertyValue('--zodal-dials-ghost-at')).toBe('0.25');
+    expect(ghost()?.getAttribute('aria-hidden')).toBe('true');
+    fireEvent.input(range, { target: { value: '0.25' } });
+    expect(ghost()).toBeNull();
+  });
+
   it('formats the readout and aria-valuetext with the host format, live', () => {
     const format = (_f: SettingFieldConfig, v: unknown) => `${Math.round(Number(v) * 100)}%`;
     const { container } = render(h(SliderControl, { field: slider(), state: st(0.8), format }));
