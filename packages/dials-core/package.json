@@ -1,6 +1,7 @@
 {
   "name": "@zodal/dials-core",
   "version": "0.1.0",
+  "license": "Apache-2.0",
   "description": "Canonical settings model + cascade engine (defineDials, resolve/provenance, layers, merge, constraints, dependent defaults, secrets) for zodal-dials",
   "type": "module",
   "main": "./dist/index.cjs",
@@ -22,7 +23,8 @@
     "access": "public"
   },
   "files": [
-    "dist"
+    "dist",
+    "NOTICE"
   ],
   "scripts": {
     "build": "tsup",
