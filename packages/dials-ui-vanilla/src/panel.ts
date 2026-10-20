@@ -2,8 +2,8 @@
  * Field and panel assembly. `renderField` builds one labeled row (label + provenance badges +
  * description + control via the registry + a reset button when overridden). `renderSettingsPanel`
  * builds the whole panel: a client-side search/filter box (shown above `searchThreshold` settings),
- * a section per primary facet for the essentials, and the advanced settings after them behind ONE `<details>` disclosure (searching opens
- * it when a match is inside). Each setting renders ONCE (under its primary facet); multi-membership
+ * a section per primary facet for the essentials, and the advanced settings after them behind ONE
+ * `<details>` disclosure (searching opens it when a match is inside). Each setting renders ONCE (under its primary facet); multi-membership
  * facets and computed groups drive filtering, not duplicate controls.
  */
 
