@@ -271,14 +271,17 @@
 :where(.zodal-dials-slider-ghost) {
   position: absolute;
   top: 50%;
-  left: calc(var(--zodal-dials-thumb, 28px) / 2 + var(--zodal-dials-ghost-at, 0) * (100% - var(--zodal-dials-thumb, 28px)));
+  /* Logical inset + margin (not left + translateX), so a right-to-left range (min on the right)
+     puts the ghost at the mirrored spot too. */
+  inset-inline-start: calc(var(--zodal-dials-thumb, 28px) / 2 + var(--zodal-dials-ghost-at, 0) * (100% - var(--zodal-dials-thumb, 28px)));
+  margin-inline-start: calc(var(--zodal-dials-thumb, 28px) / -2);
   box-sizing: border-box;
   width: var(--zodal-dials-thumb, 28px);
   height: var(--zodal-dials-thumb, 28px);
   border: 2px solid var(--zodal-dials-accent, #2563eb);
   border-radius: 50%;
   opacity: 0.45;
-  transform: translate(-50%, -50%);
+  transform: translateY(-50%);
   pointer-events: none;
 }
 

@@ -197,7 +197,10 @@ test. The UI/store ones (full list + the secrets/patch/store gotchas in
 - A slider sets `step` (or `'any'`), and sets `value` AFTER min/max/step (else the browser clamps).
 - Slider DOM: `span.zodal-dials-slider-wrap > span.zodal-dials-slider-track > (input + span.zodal-dials-slider-ghost)`
   + `output`. The ghost marks the saved value while the thumb is away (`--zodal-dials-ghost-at` =
-  `sliderFraction`, CSS centre `thumb/2 + at*(100% - thumb)`; both engines' thumbs are border-box).
+  `sliderFraction`, CSS centre `thumb/2 + at*(100% - thumb)` as a logical inset, so RTL mirrors;
+  both engines' thumbs are border-box). One rule: the ghost leaves once the commit is the saved value —
+  vanilla tracks its own saved value (set on `change`; the panel never rebuilds a control), shadcn
+  waits for `state.value` to change (or blur), so an async or rejected commit keeps the mark.
 - Radio = chips: `label.zodal-dials-choice > input[type=radio] + span.zodal-dials-choice-label`.
 - `renderSettingsPanel`: advanced fields go after the essentials in ONE
   `details.zodal-dials-advanced` (`advanced: 'inline'` opts out); search opens it on a match inside,
