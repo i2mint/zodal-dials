@@ -9,35 +9,14 @@
 
 import { el } from './dom.js';
 import { isSecretRef } from '@zodal/dials-core';
+import { formatValue, optionLabel, toHexColor } from '@zodal/dials-ui';
 import type { SettingFieldConfig, SettingFieldState } from '@zodal/dials-ui';
 import type { FieldPresentation, SettingRenderFn } from './types.js';
 
 const isDisabled = (field: SettingFieldConfig, state: SettingFieldState): boolean => field.readOnly || state.managed;
 const asText = (v: unknown): string => (v == null ? '' : String(v));
 
-/** The display label of an enum value (its `enumLabels` entry, else the value itself). */
-export function optionLabel(field: SettingFieldConfig, value: string): string {
-  return field.enumLabels?.[value] ?? value;
-}
-
-/** Decimal places that a step implies (0.25 → 2, 0.1 → 1, 1 → 0, 1e-7 → 7). */
-function decimalsFor(step: number | undefined): number {
-  if (!step || !Number.isFinite(step)) return 0;
-  const [mantissa, exponent] = step.toExponential().split('e');
-  const fraction = (mantissa.split('.')[1] ?? '').length;
-  return Math.min(20, Math.max(0, fraction - Number(exponent)));
-}
-
-/** Default display of a value: a number rounded to its step's precision, followed by the field's
- *  unit verbatim (`unit: 'px'` → `12px`; put a leading space in the unit for `3 s`); anything else as
- *  text. Scaling (0.8 → `80%`) is a host `format`, not a unit. */
-export function formatValue(field: SettingFieldConfig, value: unknown): string {
-  if (typeof value === 'number' && Number.isFinite(value)) {
-    const text = field.step !== undefined ? String(Number(value.toFixed(decimalsFor(field.step)))) : String(value);
-    return field.unit ? `${text}${field.unit}` : text;
-  }
-  return asText(value);
-}
+export { formatValue, optionLabel };
 
 const display = (field: SettingFieldConfig, value: unknown, h: FieldPresentation): string =>
   h.format?.(field, value) ?? formatValue(field, value);
@@ -91,8 +70,8 @@ export const renderTextarea: SettingRenderFn = (field, state, h) =>
     asText(state.value),
   );
 
-export const renderNumber: SettingRenderFn = (field, state, h) =>
-  el('input', {
+export const renderNumber: SettingRenderFn = (field, state, h) => {
+  const input = el('input', {
     type: 'number',
     id: field.key,
     class: 'zodal-dials-number',
@@ -108,6 +87,11 @@ export const renderNumber: SettingRenderFn = (field, state, h) =>
       if (v !== undefined) h.onChange?.(field.key, v);
     },
   });
+  // The unit sits beside the box (a number input cannot hold text), hidden from AT: the label says it.
+  return field.unit
+    ? el('span', { class: 'zodal-dials-number-wrap' }, input, el('span', { class: 'zodal-dials-unit', 'aria-hidden': 'true' }, field.unit.trim()))
+    : input;
+};
 
 export const renderSlider: SettingRenderFn = (field, state, h) => {
   // aria-live off: the range's aria-valuetext is the one announcement (an <output> is a live region).
@@ -145,15 +129,6 @@ export const renderSlider: SettingRenderFn = (field, state, h) => {
   }
   return el('span', { class: 'zodal-dials-slider-wrap' }, input, output);
 };
-
-/** Normalize a CSS colour to the `#rrggbb` form `<input type="color">` requires (else undefined). */
-function toHexColor(value: unknown): string | undefined {
-  if (typeof value !== 'string') return undefined;
-  const v = value.trim().toLowerCase();
-  if (/^#[0-9a-f]{6}$/.test(v)) return v;
-  const short = /^#([0-9a-f])([0-9a-f])([0-9a-f])$/.exec(v);
-  return short ? `#${short[1]}${short[1]}${short[2]}${short[2]}${short[3]}${short[3]}` : undefined;
-}
 
 export const renderColor: SettingRenderFn = (field, state, h) => {
   const hex = toHexColor(state.value) ?? toHexColor(field.defaultValue);

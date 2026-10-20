@@ -119,6 +119,19 @@
   font-size: max(16px, 1em);
 }
 
+/* A number input with a unit: the unit sits after the box, in the box's row. */
+:where(.zodal-dials-number-wrap) {
+  display: flex;
+  flex: 1 1 12em;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 0;
+}
+
+:where(.zodal-dials-unit) {
+  opacity: 0.75;
+}
+
 :where(.zodal-dials-reset, .zodal-dials-advanced-title) {
   min-height: var(--zodal-dials-target, 44px);
   cursor: pointer;

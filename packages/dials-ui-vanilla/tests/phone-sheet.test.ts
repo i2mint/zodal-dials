@@ -63,6 +63,13 @@ describe('slider: step, preview, commit, format', () => {
     expect(input.getAttribute('inputmode')).toBe('decimal');
   });
 
+  it('a number input with a unit shows it beside the box', () => {
+    const node = renderNumber(cfg({ widget: 'number', zodType: 'number', unit: ' s' }), st({ value: 3 }), {});
+    expect(node.classList.contains('zodal-dials-number-wrap')).toBe(true);
+    expect(node.querySelector('input[type=number]')).toBeTruthy();
+    expect(node.querySelector('.zodal-dials-unit')?.textContent).toBe('s');
+  });
+
   it('offers no decimal keypad (no minus key on iOS) when the value can be negative', () => {
     const input = renderNumber(cfg({ widget: 'number', zodType: 'number', step: 0.1, bounds: { min: -5 } }), st({ value: 1 }), {}) as HTMLInputElement;
     expect(input.getAttribute('inputmode')).toBeNull();
@@ -215,7 +222,7 @@ describe('styles.css', () => {
         pick: z.enum(['x', 'y']).default('x').meta({ facets: ['a'] }),
         many: z.enum(['p', 'q', 'r', 's', 't']).default('p'),
         level: z.number().min(0).max(1).default(0.5),
-        count: z.number().default(3),
+        count: z.number().default(3).meta({ unit: ' s' }),
         name: z.string().default('n'),
         notes: z.string().default('').meta({ editWidget: 'textarea' }),
         ink: z.string().default('#000000').meta({ editWidget: 'color' }),

@@ -8,6 +8,7 @@
  */
 
 import { el } from './dom.js';
+import { showsSearch } from '@zodal/dials-ui';
 import type { RendererRegistry, SettingFieldConfig, SettingFieldState, SettingsForm } from '@zodal/dials-ui';
 import type { ResolvedFieldAffordance } from '@zodal/core';
 import type { SettingKey } from '@zodal/dials-core';
@@ -30,18 +31,6 @@ export interface RenderOptions extends WidgetContext {
   advanced?: 'disclose' | 'inline';
   /** The disclosure's summary text. Default: `'Advanced'`. */
   advancedTitle?: string;
-}
-
-/** The default `searchThreshold`: a form with more settings than this gets a search box under
- *  `search: 'auto'`. */
-export const DEFAULT_SEARCH_THRESHOLD = 15;
-
-/** Whether a panel of `fieldCount` settings shows its search box under these options. */
-export function showsSearch(fieldCount: number, options: Pick<RenderOptions, 'search' | 'searchThreshold'> = {}): boolean {
-  const search = options.search ?? 'auto';
-  if (search !== 'auto') return search === true;
-  const threshold = Number.isFinite(options.searchThreshold) ? (options.searchThreshold as number) : DEFAULT_SEARCH_THRESHOLD;
-  return fieldCount > threshold;
 }
 
 function humanize(id: string): string {

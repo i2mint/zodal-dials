@@ -45,7 +45,7 @@ export interface SettingFieldConfig {
   /** The increment a number moves by: `.meta({ step })`, else Zod `.multipleOf()`, else 1 for an
    *  `.int()`, else (for a slider only) a round step of about 1/100 of the range. */
   step?: number;
-  /** A unit for a number's displayed value (`.meta({ unit: 'px' })`), shown in a slider's readout. */
+  /** A unit for a number's displayed value (`.meta({ unit: 'px' })`), shown in a slider's readout and beside a number input. */
   unit?: string;
   /** Facet ids this setting belongs to (multi-membership). */
   facets: string[];
