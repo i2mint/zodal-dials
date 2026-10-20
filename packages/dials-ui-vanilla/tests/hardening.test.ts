@@ -61,7 +61,7 @@ describe('M3 — client-side search matches descriptions', () => {
     );
     const result = dials.resolve([]);
     const form = toSettingsForm(dials, { result });
-    const panel = renderSettingsPanel(form, toFieldStates(form.fields, result));
+    const panel = renderSettingsPanel(form, toFieldStates(form.fields, result), { search: true });
     const search = panel.querySelector('input[type=search]') as HTMLInputElement;
     fire(search, 'input', 'glyphs');
     const visible = Array.from(panel.querySelectorAll<HTMLElement>('.zodal-dials-field')).filter((r) => r.style.display !== 'none');

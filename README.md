@@ -75,9 +75,10 @@ const panel = renderSettingsPanel(form, states, {
   onPreview: (key, value) => applyToView(key, value), // while a slider or colour moves
   onChange: (key, value) => store.set(key, value),     // once, on release
   format: (field, v) => (field.key === 'opacity' ? `${Math.round(Number(v) * 100)}%` : undefined),
-  search: false,                                        // a dozen settings need no search box
 });
 ```
+
+The search box appears only when the form has more than 15 settings (`search: 'auto'`, the default; tune with `searchThreshold`, or force it with `search: true` / `false`).
 
 A value that depends on another value (ink colour per paper, say) is best modelled as one setting per case (`ink.light`, `ink.dark`) with the host showing the one that applies, or as a scope the host pushes onto the cascade; the renderer does not key one setting by another.
 

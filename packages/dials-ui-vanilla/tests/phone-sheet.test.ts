@@ -160,7 +160,7 @@ describe('advanced settings behind one disclosure', () => {
   });
 
   it('search opens the disclosure when a match is inside, hides empty sections, and restores on clear', () => {
-    const panel = renderSettingsPanel(form, states);
+    const panel = renderSettingsPanel(form, states, { search: true });
     const details = panel.querySelector('details.zodal-dials-advanced') as HTMLDetailsElement;
     const search = panel.querySelector('input[type=search]') as HTMLInputElement;
     fire(search, 'input', 'opacity');

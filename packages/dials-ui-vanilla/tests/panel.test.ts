@@ -5,7 +5,7 @@ import { defineDials } from '@zodal/dials-core';
 import type { ResolvedFieldAffordance } from '@zodal/core';
 import { toSettingsForm, toFieldStates } from '@zodal/dials-ui';
 import { createVanillaSettingsRegistry } from '../src/registry.js';
-import { renderField, renderSettingsPanel } from '../src/panel.js';
+import { renderField, renderSettingsPanel, showsSearch, DEFAULT_SEARCH_THRESHOLD } from '../src/panel.js';
 import { cfg, st, fire } from './fixture.js';
 
 const stub = (zodType: string) => ({ zodType }) as unknown as ResolvedFieldAffordance;
@@ -65,7 +65,7 @@ describe('renderSettingsPanel end-to-end', () => {
   const states = toFieldStates(form.fields, result, ['editor.fontSize']);
 
   it('renders a panel with one row per setting, grouped into sections, with a search box', () => {
-    const panel = renderSettingsPanel(form, states);
+    const panel = renderSettingsPanel(form, states, { search: true });
     expect(panel.querySelectorAll('.zodal-dials-field').length).toBe(3);
     expect(panel.querySelector('input[type=search]')).toBeTruthy();
     expect(panel.querySelector('section[data-group=editor]')).toBeTruthy();
@@ -83,7 +83,7 @@ describe('renderSettingsPanel end-to-end', () => {
   });
 
   it('the search box filters rows client-side', () => {
-    const panel = renderSettingsPanel(form, states);
+    const panel = renderSettingsPanel(form, states, { search: true });
     const search = panel.querySelector('input[type=search]') as HTMLInputElement;
     fire(search, 'input', 'theme');
     const visible = Array.from(panel.querySelectorAll<HTMLElement>('.zodal-dials-field')).filter((r) => r.style.display !== 'none');
@@ -96,5 +96,33 @@ describe('renderSettingsPanel end-to-end', () => {
     const range = panel.querySelector('[data-key="editor.fontSize"] input[type=range]') as HTMLInputElement;
     fire(range, 'change', '30');
     expect(onChange).toHaveBeenCalledWith('editor.fontSize', 30);
+  });
+});
+
+describe("search: 'auto' (the default)", () => {
+  const manyFields = (n: number) =>
+    defineDials(z.object(Object.fromEntries(Array.from({ length: n }, (_, i) => [`s${i}`, z.boolean().default(false)]))));
+  const panelOf = (n: number, options = {}) => {
+    const dials = manyFields(n);
+    const result = dials.resolve([]);
+    const form = toSettingsForm(dials, { result });
+    return renderSettingsPanel(form, toFieldStates(form.fields, result), options);
+  };
+
+  it('hides the search box on a small form and shows it above the threshold', () => {
+    expect(panelOf(DEFAULT_SEARCH_THRESHOLD).querySelector('input[type=search]')).toBeNull();
+    expect(panelOf(DEFAULT_SEARCH_THRESHOLD + 1).querySelector('input[type=search]')).toBeTruthy();
+  });
+
+  it('searchThreshold moves the cut-off; true and false override it', () => {
+    expect(panelOf(4, { searchThreshold: 3 }).querySelector('input[type=search]')).toBeTruthy();
+    expect(panelOf(2, { search: true }).querySelector('input[type=search]')).toBeTruthy();
+    expect(panelOf(DEFAULT_SEARCH_THRESHOLD + 5, { search: false }).querySelector('input[type=search]')).toBeNull();
+  });
+
+  it('showsSearch is the rule the panel applies', () => {
+    expect(showsSearch(DEFAULT_SEARCH_THRESHOLD)).toBe(false);
+    expect(showsSearch(DEFAULT_SEARCH_THRESHOLD + 1)).toBe(true);
+    expect(showsSearch(1, { search: true })).toBe(true);
   });
 });

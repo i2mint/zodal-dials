@@ -1,7 +1,7 @@
 /**
  * Field and panel assembly. `renderField` builds one labeled row (label + provenance badges +
  * description + control via the registry + a reset button when overridden). `renderSettingsPanel`
- * builds the whole panel: a client-side search/filter box, a section per primary facet for the
+ * builds the whole panel: a client-side search/filter box (shown above `searchThreshold` settings), a section per primary facet for the
  * essentials, and the advanced settings after them behind ONE `<details>` disclosure (searching opens
  * it when a match is inside). Each setting renders ONCE (under its primary facet); multi-membership
  * facets and computed groups drive filtering, not duplicate controls.
@@ -17,13 +17,29 @@ import { createVanillaSettingsRegistry } from './registry.js';
 export interface RenderOptions extends WidgetContext {
   /** Override the renderer registry (e.g. to register custom widgets). */
   registry?: RendererRegistry<SettingRenderFn>;
-  /** Include the client-side search/filter box. Default: true. */
-  search?: boolean;
+  /** Include the client-side search/filter box: `true`, `false`, or `'auto'` (default), which shows
+   *  it only when the form has more than `searchThreshold` settings — a large surface is searched, a
+   *  phone sheet of a dozen settings is read top to bottom. */
+  search?: boolean | 'auto';
+  /** With `search: 'auto'`, the setting count above which the search box appears. Default:
+   *  `DEFAULT_SEARCH_THRESHOLD` (15). */
+  searchThreshold?: number;
   /** Where advanced settings go: `'disclose'` (default) after the essentials, behind one
    *  `<details>`; `'inline'` in their sections like any other setting. */
   advanced?: 'disclose' | 'inline';
   /** The disclosure's summary text. Default: `'Advanced'`. */
   advancedTitle?: string;
+}
+
+/** The default `searchThreshold`: a form with more settings than this gets a search box under
+ *  `search: 'auto'`. */
+export const DEFAULT_SEARCH_THRESHOLD = 15;
+
+/** Whether a panel of `fieldCount` settings shows its search box under these options. */
+export function showsSearch(fieldCount: number, options: Pick<RenderOptions, 'search' | 'searchThreshold'> = {}): boolean {
+  const search = options.search ?? 'auto';
+  if (search !== 'auto') return search;
+  return fieldCount > (options.searchThreshold ?? DEFAULT_SEARCH_THRESHOLD);
 }
 
 function humanize(id: string): string {
@@ -111,7 +127,7 @@ export function renderSettingsPanel(
   const disclose = options.advanced !== 'inline';
   const panel = el('div', { class: 'zodal-dials-panel' });
 
-  if (options.search !== false) {
+  if (showsSearch(form.fields.length, options)) {
     panel.appendChild(
       el('input', {
         type: 'search',
