@@ -1,23 +1,29 @@
 /**
  * Field and panel assembly. `renderField` builds one labeled row (label + provenance badges +
  * description + control via the registry + a reset button when overridden). `renderSettingsPanel`
- * builds the whole panel: a client-side search/filter box + a section per primary facet. Each setting
- * renders ONCE (under its primary facet); multi-membership facets and computed groups drive filtering,
- * not duplicate controls.
+ * builds the whole panel: a client-side search/filter box, a section per primary facet for the
+ * essentials, and the advanced settings after them behind ONE `<details>` disclosure (searching opens
+ * it when a match is inside). Each setting renders ONCE (under its primary facet); multi-membership
+ * facets and computed groups drive filtering, not duplicate controls.
  */
 
 import { el } from './dom.js';
 import type { RendererRegistry, SettingFieldConfig, SettingFieldState, SettingsForm } from '@zodal/dials-ui';
 import type { ResolvedFieldAffordance } from '@zodal/core';
 import type { SettingKey } from '@zodal/dials-core';
-import type { FieldHandlers, SettingRenderFn } from './types.js';
+import type { SettingRenderFn, WidgetContext } from './types.js';
 import { createVanillaSettingsRegistry } from './registry.js';
 
-export interface RenderOptions extends FieldHandlers {
+export interface RenderOptions extends WidgetContext {
   /** Override the renderer registry (e.g. to register custom widgets). */
   registry?: RendererRegistry<SettingRenderFn>;
   /** Include the client-side search/filter box. Default: true. */
   search?: boolean;
+  /** Where advanced settings go: `'disclose'` (default) after the essentials, behind one
+   *  `<details>`; `'inline'` in their sections like any other setting. */
+  advanced?: 'disclose' | 'inline';
+  /** The disclosure's summary text. Default: `'Advanced'`. */
+  advancedTitle?: string;
 }
 
 function humanize(id: string): string {
@@ -63,6 +69,8 @@ export function renderField(
   );
 }
 
+const isShown = (node: HTMLElement): boolean => node.style.display !== 'none';
+
 function filterRows(panel: HTMLElement, query: string): void {
   const q = query.trim().toLowerCase();
   for (const row of Array.from(panel.querySelectorAll<HTMLElement>('.zodal-dials-field'))) {
@@ -71,9 +79,28 @@ function filterRows(panel: HTMLElement, query: string): void {
     const description = (row.querySelector('.zodal-dials-description')?.textContent ?? '').toLowerCase();
     row.style.display = !q || key.includes(q) || label.includes(q) || description.includes(q) ? '' : 'none';
   }
+  // A section with no matching row is hidden, so a search does not leave a column of empty headings.
+  for (const section of Array.from(panel.querySelectorAll<HTMLElement>('.zodal-dials-group'))) {
+    section.style.display = Array.from(section.querySelectorAll<HTMLElement>('.zodal-dials-field')).some(isShown) ? '' : 'none';
+  }
+  // The advanced disclosure opens while a search matches inside it, and returns to the reader's own
+  // open/closed choice when the search is cleared.
+  const details = panel.querySelector<HTMLDetailsElement>('details.zodal-dials-advanced');
+  if (!details) return;
+  if (q) {
+    if (!details.hasAttribute('data-open-before-search')) details.setAttribute('data-open-before-search', String(details.open));
+    const match = Array.from(details.querySelectorAll<HTMLElement>('.zodal-dials-field')).some(isShown);
+    details.open = match;
+    details.style.display = match ? '' : 'none';
+  } else {
+    const before = details.getAttribute('data-open-before-search');
+    if (before !== null) details.open = before === 'true';
+    details.removeAttribute('data-open-before-search');
+    details.style.display = '';
+  }
 }
 
-/** Render the full settings panel (search box + a section per primary facet). */
+/** Render the full settings panel: search box, a section per primary facet, advanced disclosed. */
 export function renderSettingsPanel(
   form: SettingsForm,
   states: Record<SettingKey, SettingFieldState>,
@@ -81,6 +108,7 @@ export function renderSettingsPanel(
 ): HTMLElement {
   const registry = options.registry ?? createVanillaSettingsRegistry();
   const opts: RenderOptions = { ...options, registry };
+  const disclose = options.advanced !== 'inline';
   const panel = el('div', { class: 'zodal-dials-panel' });
 
   if (options.search !== false) {
@@ -89,31 +117,49 @@ export function renderSettingsPanel(
         type: 'search',
         class: 'zodal-dials-search',
         placeholder: 'Search settings…',
+        'aria-label': 'Search settings',
         oninput: (e: Event) => filterRows(panel, (e.target as HTMLInputElement).value),
       }),
     );
   }
 
-  // Bucket each field under its primary (first non-computed) facet, so every field renders once.
-  const primary = (f: SettingFieldConfig): string => f.facets?.find((x) => !x.startsWith('@')) ?? '_ungrouped';
-  const buckets = new Map<string, SettingFieldConfig[]>();
-  for (const f of form.fields) {
-    const id = primary(f);
-    const list = buckets.get(id);
-    if (list) list.push(f);
-    else buckets.set(id, [f]);
-  }
-
+  // Bucket each field under its primary (first non-computed) facet, so every field renders once. When
+  // advanced settings are disclosed, the `advanced` facet is their location, not their section.
+  const primary = (f: SettingFieldConfig): string =>
+    f.facets?.find((x) => !x.startsWith('@') && !(disclose && f.advanced && x === 'advanced')) ?? '_ungrouped';
   const groupMeta = new Map(form.groups.map((g) => [g.id, g]));
-  const sectionIds = [...buckets.keys()].sort(
-    (a, b) => (groupMeta.get(a)?.order ?? 500) - (groupMeta.get(b)?.order ?? 500) || a.localeCompare(b),
-  );
 
-  for (const id of sectionIds) {
-    const title = groupMeta.get(id)?.title ?? humanize(id);
-    const section = el('section', { class: 'zodal-dials-group', 'data-group': id }, el('h3', { class: 'zodal-dials-group-title' }, title));
-    for (const f of buckets.get(id) ?? []) section.appendChild(renderField(f, states[f.key] ?? emptyState(), opts));
-    panel.appendChild(section);
+  const sections = (fields: SettingFieldConfig[]): HTMLElement[] => {
+    const buckets = new Map<string, SettingFieldConfig[]>();
+    for (const f of fields) {
+      const id = primary(f);
+      const list = buckets.get(id);
+      if (list) list.push(f);
+      else buckets.set(id, [f]);
+    }
+    const ids = [...buckets.keys()].sort(
+      (a, b) => (groupMeta.get(a)?.order ?? 500) - (groupMeta.get(b)?.order ?? 500) || a.localeCompare(b),
+    );
+    return ids.map((id) => {
+      const title = groupMeta.get(id)?.title ?? humanize(id);
+      const section = el('section', { class: 'zodal-dials-group', 'data-group': id }, el('h3', { class: 'zodal-dials-group-title' }, title));
+      for (const f of buckets.get(id) ?? []) section.appendChild(renderField(f, states[f.key] ?? emptyState(), opts));
+      return section;
+    });
+  };
+
+  const essentials = disclose ? form.fields.filter((f) => !f.advanced) : form.fields;
+  const advanced = disclose ? form.fields.filter((f) => f.advanced) : [];
+  for (const section of sections(essentials)) panel.appendChild(section);
+  if (advanced.length > 0) {
+    panel.appendChild(
+      el(
+        'details',
+        { class: 'zodal-dials-advanced' },
+        el('summary', { class: 'zodal-dials-advanced-title' }, options.advancedTitle ?? 'Advanced'),
+        ...sections(advanced),
+      ),
+    );
   }
 
   return panel;

@@ -66,6 +66,13 @@ Anything unhandled (open record / mixed / `z.any` / over-budget) falls to `rawJs
 "edit as source" escape hatch (a raw edit is just another layer/patch). The two concrete renderers
 register a control per widget kind plus the terminal `rawJson`.
 
+**Display affordances on `SettingFieldConfig`** (read in `introspect.ts`, all optional, plain data):
+`step` (`.meta({ step })` → Zod `.multipleOf()` → `1` for `.int()` → for a fully bounded number a
+round `10^round(log10(span/100))`), `enumLabels` (`.meta({ enumLabels: { value: 'Label' } })`, only
+string labels of real enum values kept; also indexed for search), `unit` (`.meta({ unit })`, appended
+verbatim). `color` is reached only via `.meta({ editWidget: 'color' })`. A formatting *function* is
+never in the headless config (not serializable): renderers take it as a hook.
+
 ## Pattern 3 — faceted organization (`toGroups`)
 
 Facets/tags are **canonical** (multi-membership); a **group tree is one projection**. The schema
@@ -179,6 +186,23 @@ test. The UI/store ones (full list + the secrets/patch/store gotchas in
 - **Store:** validate over **UNMASKED** values (a constraint must see the real secret, not a
   `SecretRef`); isolate throwing listeners (try/catch per listener + `onListenerError`); **copy
   `scopes` in and out** — never alias the caller's array into internal state.
+
+## The vanilla renderer's phone contract (`dials-ui-vanilla`, issue #19)
+
+- **Preview vs commit:** `FieldHandlers` = `onChange` (once, on release/pick) + `onPreview` (each
+  transient value while a slider or colour moves) + `onReset`. Never call `onChange` from `input`.
+- **Presentation hooks** (`FieldPresentation`): `format(field, value)` (slider readout +
+  `aria-valuetext`; `undefined` → `formatValue`: rounded to the step's decimals + unit) and
+  `decorateOption(field, value, labelEl)` for enum chips. Widgets receive `WidgetContext` = both.
+- A slider sets `step` (or `'any'`), and sets `value` AFTER min/max/step (else the browser clamps).
+- Radio = chips: `label.zodal-dials-choice > input[type=radio] + span.zodal-dials-choice-label`.
+- `renderSettingsPanel`: advanced fields go after the essentials in ONE
+  `details.zodal-dials-advanced` (`advanced: 'inline'` opts out); search opens it on a match inside,
+  hides empty sections, restores the reader's open state on clear.
+- `styles.css` (package export `./styles.css`): every rule in `:where()`, tokens
+  `--zodal-dials-{target,thumb,track,gap,radius,accent,on-accent,border}`, never a font family
+  (a test guards it).
+- The shadcn renderer honours `step`/`unit`/`enumLabels` but not yet preview/format/colour/disclosure.
 
 ## Reference implementations (BUILT, in this repo)
 

@@ -50,6 +50,37 @@ It **wraps, it doesn't rebuild**: a settings document is modeled as a degenerate
 
 See [`docs/dev-plan.md`](docs/dev-plan.md) for the phased, horizon-graded plan and [`docs/zodal-dials-concept.md`](docs/zodal-dials-concept.md) for the design intent.
 
+## A settings sheet on a phone (`@zodal/dials-ui-vanilla`)
+
+The schema says what each control needs; the vanilla renderer draws it, and an optional stylesheet sizes it for touch (44px targets, a 28px slider thumb, inputs at 16px or more) while inheriting the host's fonts.
+
+```ts
+import { toSettingsForm, toFieldStates } from '@zodal/dials-ui';
+import { renderSettingsPanel } from '@zodal/dials-ui-vanilla';
+import '@zodal/dials-ui-vanilla/styles.css'; // or <link rel="stylesheet"> to the file
+
+const look = defineDials(z.object({
+  placement: z.enum(['above', 'inline']).default('above')
+    .meta({ enumLabels: { above: 'Above the line', inline: 'In the line' } }),   // chips show labels
+  opacity: z.number().min(0.1).max(1).multipleOf(0.05).default(0.8),            // step 0.05
+  chordSize: z.number().min(8).max(32).default(14).meta({ step: 1, unit: 'px' }), // readout "14px"
+  ink: z.string().default('#222222').meta({ editWidget: 'color' }),              // <input type="color">
+  lineSpacing: z.number().min(1).max(2).default(1.2).meta({ advanced: true }),    // behind "Advanced"
+}));
+
+const result = look.resolve([{ scope: 'user', layer: savedLayer }]);
+const form = toSettingsForm(look, { result });
+const states = toFieldStates(form.fields, result);
+const panel = renderSettingsPanel(form, states, {
+  onPreview: (key, value) => applyToView(key, value), // while a slider or colour moves
+  onChange: (key, value) => store.set(key, value),     // once, on release
+  format: (field, v) => (field.key === 'opacity' ? `${Math.round(Number(v) * 100)}%` : undefined),
+  search: false,                                        // a dozen settings need no search box
+});
+```
+
+A value that depends on another value (ink colour per paper, say) is best modelled as one setting per case (`ink.light`, `ink.dark`) with the host showing the one that applies, or as a scope the host pushes onto the cascade; the renderer does not key one setting by another.
+
 ## Status
 
 **Design phase.** This repo currently holds the research corpus ([`docs/research/`](docs/research/)), the design plan, and the agent dev toolkit. No package code yet — the first build checkpoint is `@zodal/dials-core` (the cascade keystone). Nothing is published to npm.

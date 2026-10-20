@@ -38,7 +38,15 @@ export interface SettingFieldConfig {
   mergeStrategy: MergeStrategy;
   defaultValue?: unknown;
   enumValues?: string[];
+  /** Display label per enum value (from `.meta({ enumLabels: { value: 'Label' } })`); a value with
+   *  no entry is shown as itself. */
+  enumLabels?: Record<string, string>;
   bounds?: { min?: number; max?: number };
+  /** The increment a number moves by: `.meta({ step })`, else Zod `.multipleOf()`, else 1 for an
+   *  `.int()`, else (for a slider) a round step of about 1/100 of the range. */
+  step?: number;
+  /** A unit shown after a number's value (`.meta({ unit: 'px' })`). Renderers may format further. */
+  unit?: string;
   /** Facet ids this setting belongs to (multi-membership). */
   facets: string[];
   /** Advanced-disclosure flag (membership in the `advanced` facet). */
