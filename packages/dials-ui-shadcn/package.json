@@ -1,6 +1,7 @@
 {
   "name": "@zodal/dials-ui-shadcn",
   "version": "0.1.0",
+  "license": "Apache-2.0",
   "description": "React/shadcn renderer for @zodal/dials-ui — settings panel components consuming the headless config",
   "type": "module",
   "main": "./dist/index.cjs",
@@ -8,7 +9,7 @@
   "types": "./dist/index.d.ts",
   "exports": { ".": { "import": { "types": "./dist/index.d.ts", "default": "./dist/index.js" }, "require": { "types": "./dist/index.d.cts", "default": "./dist/index.cjs" } }, "./styles.css": "./dist/styles.css" },
   "publishConfig": { "access": "public" },
-  "files": ["dist"],
+  "files": ["dist", "NOTICE"],
   "scripts": { "build": "tsup", "prepublishOnly": "pnpm build", "test": "vitest run", "typecheck": "tsc --noEmit" },
   "peerDependencies": {
     "@zodal/core": "^0.1.2",

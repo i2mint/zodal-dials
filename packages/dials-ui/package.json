@@ -1,6 +1,7 @@
 {
   "name": "@zodal/dials-ui",
   "version": "0.1.0",
+  "license": "Apache-2.0",
   "description": "Headless settings UI layer for zodal-dials: toSettingsForm, the settings renderer registry, facet grouping, search, and change-lifecycle events",
   "type": "module",
   "main": "./dist/index.cjs",
@@ -22,7 +23,8 @@
     "access": "public"
   },
   "files": [
-    "dist"
+    "dist",
+    "NOTICE"
   ],
   "scripts": {
     "build": "tsup",
