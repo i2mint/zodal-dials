@@ -1,15 +1,16 @@
 /**
  * Vanilla widget renderers — each produces the control element for a setting from its config +
  * current state, wiring change events to the handlers. Continuous controls (slider, colour) call
- * `onPreview` while they move and `onChange` once, on release. Enum choices show their display
- * labels (`enumLabels`); a short enum renders as a row of chips over native radios. A `secret` value
+ * `onPreview` while they move and `onChange` once, on release; a moving slider shows a ghost thumb at
+ * the saved value. Enum choices show their display labels (`enumLabels`); a short enum renders as a
+ * row of chips over native radios. A `secret` value
  * (a masked `SecretRef`) is shown as a status + a write-only field. Structured/unknown values fall
  * back to a raw JSON editor (the rawJson renderer states WHY). No framework; pure DOM.
  */
 
 import { el } from './dom.js';
 import { isSecretRef } from '@zodal/dials-core';
-import { formatValue, optionLabel, toHexColor } from '@zodal/dials-ui';
+import { formatValue, optionLabel, sliderFraction, toHexColor } from '@zodal/dials-ui';
 import type { SettingFieldConfig, SettingFieldState } from '@zodal/dials-ui';
 import type { FieldPresentation, SettingRenderFn } from './types.js';
 
@@ -93,9 +94,26 @@ export const renderNumber: SettingRenderFn = (field, state, h) => {
     : input;
 };
 
+/** The ghost thumb: a faded marker at the saved value, shown while the thumb is away from it, so the
+ *  reader sees how far they moved and where to return. Decorative (the readout says the value). */
+function ghostThumb(): HTMLElement {
+  return el('span', { class: 'zodal-dials-slider-ghost', 'aria-hidden': 'true', hidden: true });
+}
+
 export const renderSlider: SettingRenderFn = (field, state, h) => {
   // aria-live off: the range's aria-valuetext is the one announcement (an <output> is a live region).
   const output = el('output', { class: 'zodal-dials-slider-value', for: field.key, 'aria-live': 'off' });
+  const ghost = ghostThumb();
+  // The value the ghost marks: what the thumb showed at rest, then each committed value (the panel
+  // does not rebuild a control after a commit, so the control tracks its own saved value).
+  let saved: number | undefined;
+  const settle = (value: number | undefined): void => {
+    saved = value;
+    ghost.hidden = true;
+    const at = sliderFraction(field, value);
+    if (at === undefined) ghost.style.removeProperty('--zodal-dials-ghost-at');
+    else ghost.style.setProperty('--zodal-dials-ghost-at', String(at));
+  };
   const input = el('input', {
     type: 'range',
     id: field.key,
@@ -111,23 +129,27 @@ export const renderSlider: SettingRenderFn = (field, state, h) => {
       const text = display(field, v, h);
       output.textContent = text;
       input.setAttribute('aria-valuetext', text);
+      ghost.hidden = saved === undefined || sliderFraction(field, saved) === undefined || v === saved;
       h.onPreview?.(field.key, v);
     },
+    // Commit on release (or per arrow-key step): the committed value becomes the saved one.
     onchange: (e: Event) => {
       const v = decodeNumber((e.target as HTMLInputElement).value);
+      settle(v ?? saved);
       if (v !== undefined) h.onChange?.(field.key, v);
     },
   });
   // Set the value after min/max/step exist, or the browser clamps/snaps it against the defaults; then
-  // show what the thumb shows (the browser may have snapped the stored value to the step).
+  // show (and mark as saved) what the thumb shows: the browser may have snapped the stored value.
   input.value = asText(state.value);
   if (state.value !== undefined) {
-    const shown = decodeNumber(input.value) ?? state.value;
+    const shown = decodeNumber(input.value) ?? (state.value as number);
     const text = display(field, shown, h);
     output.textContent = text;
     input.setAttribute('aria-valuetext', text);
+    settle(typeof state.value === 'number' ? shown : undefined);
   }
-  return el('span', { class: 'zodal-dials-slider-wrap' }, input, output);
+  return el('span', { class: 'zodal-dials-slider-wrap' }, el('span', { class: 'zodal-dials-slider-track' }, input, ghost), output);
 };
 
 export const renderColor: SettingRenderFn = (field, state, h) => {

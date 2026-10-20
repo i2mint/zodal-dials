@@ -39,6 +39,44 @@ describe('slider: step, preview, commit, format', () => {
     expect(onChange).toHaveBeenCalledWith('k', 0.45);
   });
 
+  it('shows a ghost thumb at the saved value while the thumb is away, and drops it on commit', () => {
+    const wrap = renderSlider(slider({ bounds: { min: 0, max: 1 } }), st({ value: 0.25 }), {});
+    const range = wrap.querySelector('input[type=range]') as HTMLInputElement;
+    const ghost = wrap.querySelector('.zodal-dials-slider-track .zodal-dials-slider-ghost') as HTMLElement;
+    expect(ghost.hidden).toBe(true);
+    expect(ghost.getAttribute('aria-hidden')).toBe('true');
+    expect(ghost.style.getPropertyValue('--zodal-dials-ghost-at')).toBe('0.25');
+    fire(range, 'input', '0.6');
+    expect(ghost.hidden).toBe(false);
+    fire(range, 'input', '0.25');
+    expect(ghost.hidden).toBe(true); // back on the saved value: nothing to mark
+    fire(range, 'input', '0.6');
+    fire(range, 'change', '0.6');
+    expect(ghost.hidden).toBe(true);
+    // the committed value is the new saved value: the next drag marks it, not the original
+    expect(ghost.style.getPropertyValue('--zodal-dials-ghost-at')).toBe('0.6');
+    fire(range, 'input', '0.6');
+    expect(ghost.hidden).toBe(true);
+    fire(range, 'input', '0.9');
+    expect(ghost.hidden).toBe(false);
+  });
+
+  it('marks the value the thumb shows when the saved value is off the step grid', () => {
+    // 0.33 snaps to 0.35 on a 0.05 grid: touching the thumb without moving it shows no ghost
+    const wrap = renderSlider(slider({ bounds: { min: 0, max: 1 } }), st({ value: 0.33 }), {});
+    const range = wrap.querySelector('input[type=range]') as HTMLInputElement;
+    const ghost = wrap.querySelector('.zodal-dials-slider-ghost') as HTMLElement;
+    fire(range, 'input', range.value);
+    expect(ghost.hidden).toBe(true);
+  });
+
+  it('never shows a ghost without bounds or a saved number', () => {
+    for (const wrap of [renderSlider(slider({ bounds: undefined }), st({ value: 0.5 }), {}), renderSlider(slider(), st({}), {})]) {
+      fire(wrap.querySelector('input[type=range]') as HTMLInputElement, 'input', '0.7');
+      expect((wrap.querySelector('.zodal-dials-slider-ghost') as HTMLElement).hidden).toBe(true);
+    }
+  });
+
   it('formats the readout and aria-valuetext with the host format, live', () => {
     const format = (_f: unknown, v: unknown) => `${Math.round((v as number) * 100)}%`;
     const wrap = renderSlider(slider(), st({ value: 0.8 }), { format });

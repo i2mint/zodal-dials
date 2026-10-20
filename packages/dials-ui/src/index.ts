@@ -9,7 +9,7 @@
  *   `alwaysMatch` rawJson fallback).
  * - faceted organization (`toGroups`) and search (`toIndexableSettings`, `createSubstringSearchProvider`,
  *   `parseScopedQuery`, `applyScopedFilters`, `searchSettings`).
- * - renderer-neutral display rules (`formatValue`, `optionLabel`, `toHexColor`, `showsSearch`).
+ * - renderer-neutral display rules (`formatValue`, `optionLabel`, `toHexColor`, `sliderFraction`, `showsSearch`).
  * - change-lifecycle helpers (`dirtyKeys`, `resetToDefault`, `unsetKey`, `recordLayerChange`, undo).
  */
 
@@ -25,7 +25,7 @@ export type {
 
 export { widgetKindFor } from './widgets.js';
 
-export { formatValue, optionLabel, toHexColor, showsSearch, DEFAULT_SEARCH_THRESHOLD } from './display.js';
+export { formatValue, optionLabel, toHexColor, sliderFraction, showsSearch, DEFAULT_SEARCH_THRESHOLD } from './display.js';
 export type { SearchBoxOptions } from './display.js';
 export type { WidgetInput } from './widgets.js';
 

@@ -257,6 +257,34 @@
   min-width: 0;
 }
 
+/* The track box: the range, and over it while it moves a ghost thumb at the saved value. A native
+   thumb's centre travels from half a thumb in at min to half a thumb in at max, so the ghost uses the
+   same thumb size (--zodal-dials-thumb, border-box on every engine) to sit exactly under it. */
+:where(.zodal-dials-slider-track) {
+  position: relative;
+  display: flex;
+  flex: 1;
+  align-items: center;
+  min-width: 0;
+}
+
+:where(.zodal-dials-slider-ghost) {
+  position: absolute;
+  top: 50%;
+  /* Logical inset + margin (not left + translateX), so a right-to-left range (min on the right)
+     puts the ghost at the mirrored spot too. */
+  inset-inline-start: calc(var(--zodal-dials-thumb, 28px) / 2 + var(--zodal-dials-ghost-at, 0) * (100% - var(--zodal-dials-thumb, 28px)));
+  margin-inline-start: calc(var(--zodal-dials-thumb, 28px) / -2);
+  box-sizing: border-box;
+  width: var(--zodal-dials-thumb, 28px);
+  height: var(--zodal-dials-thumb, 28px);
+  border: 2px solid var(--zodal-dials-accent, #2563eb);
+  border-radius: 50%;
+  opacity: 0.45;
+  transform: translateY(-50%);
+  pointer-events: none;
+}
+
 :where(.zodal-dials-slider) {
   flex: 1;
   min-width: 0;
@@ -280,6 +308,7 @@
 }
 
 :where(.zodal-dials-slider)::-webkit-slider-thumb {
+  box-sizing: border-box;
   width: var(--zodal-dials-thumb, 28px);
   height: var(--zodal-dials-thumb, 28px);
   margin-top: calc((var(--zodal-dials-track, 6px) - var(--zodal-dials-thumb, 28px)) / 2);

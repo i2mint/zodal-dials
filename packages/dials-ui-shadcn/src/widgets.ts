@@ -2,16 +2,16 @@
  * React widget controls for settings — plain elements with `zodal-dials-*` class names (swap in
  * shadcn/ui `Switch`, `Select`, `Slider`, … in a consumer). Uses `React.createElement` (no JSX).
  * Continuous controls (slider, colour) call `onPreview` while they move and `onChange` once, on
- * release (the native `change` event). Enum choices show their display labels; a short enum renders
- * as a row of chips over native radios. A secret renders a masked status + write-only field and never
- * echoes plaintext; structured/unknown values fall back to a raw JSON editor that also refuses to
- * serialize a secret.
+ * release (the native `change` event); a moving slider shows a ghost thumb at the saved value. Enum
+ * choices show their display labels; a short enum renders as a row of chips over native radios. A
+ * secret renders a masked status + write-only field and never echoes plaintext; structured/unknown
+ * values fall back to a raw JSON editor that also refuses to serialize a secret.
  */
 
 import { createElement as h, useEffect, useRef, useState } from 'react';
-import type { ChangeEvent, RefObject } from 'react';
+import type { ChangeEvent, CSSProperties, RefObject } from 'react';
 import { isSecretRef } from '@zodal/dials-core';
-import { formatValue, optionLabel, toHexColor } from '@zodal/dials-ui';
+import { formatValue, optionLabel, sliderFraction, toHexColor } from '@zodal/dials-ui';
 import type { ControlProps, SettingControl } from './types.js';
 
 const isDisabled = (p: ControlProps): boolean => p.field.readOnly || p.state.managed;
@@ -115,30 +115,41 @@ export const SliderControl: SettingControl = (p) => {
   });
   const shown = moving ?? p.state.value;
   const text = shown == null ? '' : display(p, shown);
+  // The ghost thumb: a faded marker at the saved value while the thumb is away from it.
+  const ghostAt = moving !== undefined && moving !== p.state.value ? sliderFraction(p.field, p.state.value) : undefined;
+  const ghost =
+    ghostAt === undefined
+      ? null
+      : h('span', { className: 'zodal-dials-slider-ghost', 'aria-hidden': true, style: { '--zodal-dials-ghost-at': ghostAt } as CSSProperties });
   return h(
     'span',
     { className: 'zodal-dials-slider-wrap' },
-    h('input', {
-      ref,
-      type: 'range',
-      id: p.field.key,
-      className: 'zodal-dials-slider',
-      value: asText(shown),
-      min: p.field.bounds?.min,
-      max: p.field.bounds?.max,
-      // without a step a range input moves in steps of 1 (a 0.1..1 slider would have two positions)
-      step: p.field.step ?? 'any',
-      'aria-valuetext': text || undefined,
-      disabled: isDisabled(p),
-      onBlur: () => setMoving(undefined),
-      onChange: (e: ChangeEvent<HTMLInputElement>) => {
-        if (isCommitEvent(e)) return;
-        const v = decodeNumber(e.target.value);
-        if (v === undefined) return;
-        setMoving(v);
-        p.onPreview?.(v);
-      },
-    }),
+    h(
+      'span',
+      { className: 'zodal-dials-slider-track' },
+      h('input', {
+        ref,
+        type: 'range',
+        id: p.field.key,
+        className: 'zodal-dials-slider',
+        value: asText(shown),
+        min: p.field.bounds?.min,
+        max: p.field.bounds?.max,
+        // without a step a range input moves in steps of 1 (a 0.1..1 slider would have two positions)
+        step: p.field.step ?? 'any',
+        'aria-valuetext': text || undefined,
+        disabled: isDisabled(p),
+        onBlur: () => setMoving(undefined),
+        onChange: (e: ChangeEvent<HTMLInputElement>) => {
+          if (isCommitEvent(e)) return;
+          const v = decodeNumber(e.target.value);
+          if (v === undefined) return;
+          setMoving(v);
+          p.onPreview?.(v);
+        },
+      }),
+      ghost,
+    ),
     // aria-live off: the range's aria-valuetext is the one announcement (an <output> is a live region).
     h('output', { className: 'zodal-dials-slider-value', htmlFor: p.field.key, 'aria-live': 'off' }, text),
   );
@@ -187,7 +198,7 @@ export const RadioControl: SettingControl = (p) =>
       return h(
         'label',
         { key: `${i}:${v}`, className: 'zodal-dials-choice', 'data-value': v },
-        h('input', {
+      h('input', {
           type: 'radio',
           name: p.field.key,
           value: v,
