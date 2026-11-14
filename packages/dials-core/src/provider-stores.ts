@@ -8,17 +8,20 @@
  * dependency on `@zodal/store`.
  *
  * Secrets never reach a layer record: `providerLayerStore` strips every key `sensitivityFor`
- * calls secret (by default, the same name heuristic `defineDials` applies to ad-hoc keys) before
- * saving. Keep them in a `SecretBackend` instead.
+ * calls secret, on save and on load (without `sensitivityFor` it fails closed: any key whose name,
+ * or whose value's nested field names, look secret). Keep secrets in a `SecretBackend` instead.
+ * `@zodal/store-localstorage` has no `subscribe`, so a layer store over it is not watchable
+ * (another tab's changes are not seen until the next load).
  */
 
 import type { Layer, SecretRef, Sensitivity, SettingKey } from './model.js';
 import { deserializeLayer, serializeLayer } from './patch.js';
 import type { SerializedLayer } from './patch.js';
-import { makeSecretRef, redactSecretsFromLayer } from './secrets.js';
+import { makeSecretRef } from './secrets.js';
 import type { SecretBackend } from './secrets.js';
 import type { LayerStore } from './store.js';
 import { secretByName } from './names.js';
+import { isPlainObject } from './util.js';
 
 /** The part of a zodal `DataProvider<T>` these stores use (any `DataProvider` satisfies it). */
 export interface RecordProvider<T> {
@@ -26,7 +29,10 @@ export interface RecordProvider<T> {
   create(data: Partial<T>): Promise<T>;
   update(id: string, data: Partial<T>): Promise<T>;
   delete(id: string): Promise<void>;
-  getList(params: Record<string, never> | object): Promise<{ data: T[]; total: number }>;
+  getList(params: {
+    filter?: { field: string; operator: 'eq' | 'startsWith'; value: unknown };
+    pagination?: { page: number; pageSize: number };
+  }): Promise<{ data: T[]; total: number }>;
   upsert?(data: T): Promise<T>;
   subscribe?(callback: (event: { type: 'created' | 'updated'; item: T } | { type: 'updated'; id: string; item: T } | { type: 'deleted'; id: string }) => void): () => void;
 }
@@ -42,44 +48,68 @@ export interface StoredLayer {
 export interface ProviderLayerStoreOptions {
   /** The scope this store provides, and the record id. Default: `'user'`. */
   scope?: string;
+  /** The provider's id field. Default: `'id'`. */
+  idField?: string;
   /**
-   * Which keys are secret (stripped before saving). Default: the name heuristic. Pass
-   * `dials.sensitivityFor` to also strip keys the schema marks secret.
+   * Which keys are secret (never saved, and dropped on load). Pass `dials.sensitivityFor` so keys
+   * the schema marks secret are caught. Without it the store fails closed: a key is dropped when
+   * its name, or the name of any field nested in its value, looks secret.
    */
   sensitivityFor?: (key: SettingKey) => Sensitivity;
   /** Clock for `savedAt`. Default: `Date.now`. */
   now?: () => number;
 }
 
-const byName = (key: SettingKey): Sensitivity => (secretByName(key) ? 'secret' : 'public');
+/** Whether a value holds a field whose name looks secret, at any depth. */
+function holdsSecretName(value: unknown, depth = 0): boolean {
+  if (depth > 8 || value === null || typeof value !== 'object') return false;
+  if (Array.isArray(value)) return value.some((v) => holdsSecretName(v, depth + 1));
+  return Object.entries(value).some(([k, v]) => secretByName(k) || holdsSecretName(v, depth + 1));
+}
 
-async function getOrUndefined<T>(provider: RecordProvider<T>, id: string): Promise<T | undefined> {
+/** Drop secret keys from a layer (fail-closed when no `sensitivityFor` is given). */
+function stripSecrets(layer: Layer, sensitivityFor: ((key: SettingKey) => Sensitivity) | undefined): Layer {
+  const out: Layer = {};
+  for (const [k, v] of Object.entries(layer)) {
+    const secret = sensitivityFor ? sensitivityFor(k) === 'secret' : secretByName(k) || holdsSecretName(v);
+    if (!secret) out[k] = v;
+  }
+  return out;
+}
+
+/** Read one record, `undefined` when it does not exist (a failed read rethrows). */
+async function getOrUndefined<T>(provider: RecordProvider<T>, idField: string, id: string): Promise<T | undefined> {
   try {
     return await provider.getOne(id);
-  } catch {
-    // getOne rejects for a missing record, but also for a failed read: tell them apart.
-    const { data } = await provider.getList({});
-    if (data.some((r) => (r as { id?: unknown }).id === id)) throw new Error(`could not read record \`${id}\``);
+  } catch (err) {
+    // getOne rejects for a missing record and for a failed read alike: ask for that id only.
+    let total: number;
+    try {
+      total = (await provider.getList({ filter: { field: idField, operator: 'eq', value: id } })).total;
+    } catch {
+      throw err;
+    }
+    if (total > 0) throw err;
     return undefined;
   }
 }
 
-async function put<T extends { id: string }>(provider: RecordProvider<T>, record: T): Promise<void> {
+async function put<T extends object>(provider: RecordProvider<T>, idField: string, id: string, record: T): Promise<void> {
   if (provider.upsert) {
     await provider.upsert(record);
     return;
   }
-  const existing = await getOrUndefined(provider, record.id);
-  if (existing) await provider.update(record.id, record);
+  const existing = await getOrUndefined(provider, idField, id);
+  if (existing) await provider.update(id, record);
   else await provider.create(record);
 }
 
 function readLayer(stored: StoredLayer | undefined): Layer {
   const raw = stored?.layer as unknown;
-  if (!raw || typeof raw !== 'object') return {};
+  if (!isPlainObject(raw)) return {};
+  const serialized = isPlainObject(raw.values) && Array.isArray(raw.unset);
   // A record written as a plain layer (the pre-serialization shape hosts used) still loads.
-  if (!('values' in (raw as object)) && !('unset' in (raw as object))) return { ...(raw as Layer) };
-  return deserializeLayer(raw as SerializedLayer);
+  return serialized ? deserializeLayer(raw as unknown as SerializedLayer) : { ...(raw as Layer) };
 }
 
 /**
@@ -90,16 +120,17 @@ export function providerLayerStore(
   provider: RecordProvider<StoredLayer>,
   options: ProviderLayerStoreOptions = {},
 ): LayerStore & { save(layer: Layer): Promise<void> } {
-  const { scope = 'user', sensitivityFor = byName, now = Date.now } = options;
+  const { scope = 'user', idField = 'id', sensitivityFor, now = Date.now } = options;
+  const load = (stored: StoredLayer | undefined) => stripSecrets(readLayer(stored), sensitivityFor);
   const store: LayerStore & { save(layer: Layer): Promise<void> } = {
     scope,
     getCapabilities: () => ({ readable: true, writable: true, watchable: typeof provider.subscribe === 'function' }),
     async load() {
-      return readLayer(await getOrUndefined(provider, scope));
+      return load(await getOrUndefined(provider, idField, scope));
     },
     async save(layer) {
-      const serialized = redactSecretsFromLayer(serializeLayer(layer), sensitivityFor);
-      await put(provider, { id: scope, layer: serialized, savedAt: now() });
+      const serialized = serializeLayer(stripSecrets(layer, sensitivityFor));
+      await put(provider, idField, scope, { [idField]: scope, id: scope, layer: serialized, savedAt: now() } as StoredLayer);
     },
   };
   if (provider.subscribe) {
@@ -110,7 +141,7 @@ export function providerLayerStore(
           if (event.id === scope) onChange({});
           return;
         }
-        if (event.item?.id === scope) onChange(readLayer(event.item));
+        if ((event.item as unknown as Record<string, unknown>)?.[idField] === scope) onChange(load(event.item));
       });
   }
   return store;
@@ -126,6 +157,8 @@ export interface StoredSecret {
 export interface ProviderSecretBackendOptions {
   /** Prefix for record ids, so several apps can share one provider. Default: `'secret:'`. */
   namespace?: string;
+  /** The provider's id field. Default: `'id'`. */
+  idField?: string;
   now?: () => number;
 }
 
@@ -143,9 +176,21 @@ export function providerSecretBackend(
   provider: RecordProvider<StoredSecret>,
   options: ProviderSecretBackendOptions = {},
 ): SecretBackend {
-  const { namespace = 'secret:', now = Date.now } = options;
+  const { namespace = 'secret:', idField = 'id', now = Date.now } = options;
   const idOf = (key: SettingKey) => `${namespace}${key}`;
-  const read = (key: SettingKey) => getOrUndefined(provider, idOf(key));
+  const recordId = (r: StoredSecret) => String((r as unknown as Record<string, unknown>)[idField]);
+  /**
+   * Run a provider call, replacing any error with one that names only the key: a storage error
+   * may carry the raw stored text (every plaintext secret in it).
+   */
+  const guarded = async <R>(what: string, key: SettingKey | undefined, call: () => Promise<R>): Promise<R> => {
+    try {
+      return await call();
+    } catch {
+      throw new Error(`secret backend: ${what}${key === undefined ? '' : ` \`${key}\``} failed`);
+    }
+  };
+  const read = (key: SettingKey) => guarded('read', key, () => getOrUndefined(provider, idField, idOf(key)));
   const refOf = (key: SettingKey, stored: StoredSecret | undefined): SecretRef =>
     makeSecretRef(key, stored !== undefined && stored.value !== '');
   return {
@@ -161,19 +206,30 @@ export function providerSecretBackend(
     },
     async set(key, value) {
       if (typeof value !== 'string') throw new Error(`secret \`${key}\` must be a string`);
-      const record = { id: idOf(key), value, savedAt: now() };
-      await put(provider, record);
+      const record = { [idField]: idOf(key), id: idOf(key), value, savedAt: now() } as StoredSecret;
+      await guarded('write', key, () => put(provider, idField, idOf(key), record));
       return refOf(key, record);
     },
     async delete(key) {
-      if (await read(key)) await provider.delete(idOf(key));
+      if (await read(key)) await guarded('delete', key, () => provider.delete(idOf(key)));
     },
     async list() {
-      const { data } = await provider.getList({});
-      return data
-        .map((r) => r.id)
-        .filter((id) => id.startsWith(namespace))
-        .map((id) => id.slice(namespace.length));
+      return guarded('list', undefined, async () => {
+        const out: string[] = [];
+        const pageSize = 200;
+        for (let page = 1; ; page++) {
+          const { data, total } = await provider.getList({
+            filter: { field: idField, operator: 'startsWith', value: namespace },
+            pagination: { page, pageSize },
+          });
+          for (const r of data) {
+            const id = recordId(r);
+            if (id.startsWith(namespace)) out.push(id.slice(namespace.length));
+          }
+          if (data.length < pageSize || page * pageSize >= total) break;
+        }
+        return out;
+      });
     },
   };
 }

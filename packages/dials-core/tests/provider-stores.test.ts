@@ -20,7 +20,12 @@ function mapProvider<T extends { id: string }>(opts: { upsert?: boolean; failRea
     async create(d) { rows.set(d.id!, structuredClone(d) as T); return structuredClone(d) as T; },
     async update(id, d) { const r = { ...rows.get(id)!, ...d }; rows.set(id, r); return r; },
     async delete(id) { rows.delete(id); },
-    async getList() { return { data: [...rows.values()], total: rows.size }; },
+    async getList(params: any = {}) {
+      const f = params.filter;
+      const data = [...rows.values()].filter((r: any) =>
+        !f ? true : f.operator === 'eq' ? r.id === f.value : String(r.id).startsWith(f.value));
+      return { data, total: data.length };
+    },
     subscribe(cb) { listeners.add(cb); return () => listeners.delete(cb); },
   };
   if (opts.upsert) p.upsert = async (d) => { rows.set(d.id, structuredClone(d)); return d; };
@@ -50,13 +55,43 @@ describe('providerLayerStore (#35)', () => {
     expect(dump).not.toContain('sk-2');
     expect(dump).toContain('"model":"x"');
   });
+  it('fails closed without sensitivityFor: nested secret names, and secrets in loaded records', async () => {
+    const p = mapProvider<any>();
+    await providerLayerStore(p).save({ llm: { provider: 'x', apiKey: 'sk-nested' }, size: 1 });
+    expect(JSON.stringify([...p.rows.values()])).not.toContain('sk-nested');
+    p.rows.set('user', { id: 'user', layer: { size: 2, apiKey: 'sk-legacy' }, savedAt: 0 });
+    expect(await providerLayerStore(p).load()).toEqual({ size: 2 });
+    p.rows.set('user', { id: 'user', layer: { values: 3, unset: 'x' }, savedAt: 0 });
+    expect(await providerLayerStore(p).load()).toEqual({ values: 3, unset: 'x' }); // a plain layer with such keys
+  });
+  it('honours idField', async () => {
+    const rows = new Map<string, any>();
+    const p: any = {
+      getOne: async (id: string) => { const r = rows.get(id); if (!r) throw new Error('nf'); return r; },
+      create: async (d: any) => { rows.set(d.key, d); return d; },
+      update: async (id: string, d: any) => { rows.set(id, { ...rows.get(id), ...d }); return rows.get(id); },
+      delete: async (id: string) => { rows.delete(id); },
+      getList: async (params: any) => { const data = [...rows.values()].filter((r) => !params.filter || (params.filter.operator === 'eq' ? r.key === params.filter.value : r.key.startsWith(params.filter.value))); return { data, total: data.length }; },
+    };
+    await providerLayerStore(p, { idField: 'key' }).save({ a: 1 });
+    await providerSecretBackend(p, { idField: 'key' }).set('openai', 'sk');
+    expect([...rows.keys()].sort()).toEqual(['secret:openai', 'user']);
+    expect(await providerSecretBackend(p, { idField: 'key' }).list()).toEqual(['openai']);
+  });
+  it('the secret backend never surfaces a storage error carrying plaintext', async () => {
+    const p: any = { ...mapProvider<any>(), getOne: async () => { throw Object.assign(new Error('corrupt: {"value":"sk-raw"}'), { raw: 'sk-raw' }); }, getList: async () => { throw new Error('sk-raw'); } };
+    const err = await providerSecretBackend(p).get('k').catch((e) => e);
+    expect(String(err)).not.toContain('sk-raw');
+    expect(JSON.stringify(err)).not.toContain('sk-raw');
+  });
   it('loads a legacy plain-layer record and reports failed reads', async () => {
     const p = mapProvider<any>();
     p.rows.set('user', { id: 'user', layer: { size: 9 }, savedAt: 0 });
     expect((await providerLayerStore(p).load()).size).toBe(9);
     const broken = mapProvider<any>({ failReads: true });
     broken.rows.set('user', { id: 'user', layer: { values: {}, unset: [] }, savedAt: 0 });
-    await expect(providerLayerStore(broken).load()).rejects.toThrow(/could not read/);
+    await expect(providerLayerStore(broken).load()).rejects.toThrow(/503/);
+    await expect(providerLayerStore(mapProvider<any>({ failReads: true })).load()).resolves.toEqual({});
   });
   it('watches the provider when it can', async () => {
     const p = mapProvider<any>();

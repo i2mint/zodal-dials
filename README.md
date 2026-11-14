@@ -122,7 +122,7 @@ await keys.set('openai', pasted);   // returns a masked SecretRef
 await keys.reveal('openai');        // the plaintext, only on an explicit call
 ```
 
-`providerLayerStore` never writes a secret (keys the schema or the name heuristic calls secret are stripped). `providerSecretBackend` keeps keys on the device: anyone with the unlocked device and browser profile can read them, which encrypting in the same storage would not change.
+`providerLayerStore` never writes a secret, and drops any it finds on load (pass `sensitivityFor: dials.sensitivityFor`; without it, it fails closed on secret-looking names at any depth). `persist` marks the layer saved only after a save of that exact layer succeeds, coalesces rapid edits, keeps edits made while loading, and ignores its own echo from a watchable store. A layer store over `@zodal/store-localstorage` is not watchable (it has no `subscribe`). `providerSecretBackend` keeps keys on the device: anyone with the unlocked device and browser profile can read them, which encrypting in the same storage would not change.
 
 ## The `.meta()` keys a settings form reads
 
