@@ -107,6 +107,23 @@ The search box appears only when the form has more than 15 settings (`search: 'a
 
 A value that depends on another value (ink colour per paper, say) is best modelled as one setting per case (`ink.light`, `ink.dark`) with the host showing the one that applies, or as a scope the host pushes onto the cascade; the renderer does not key one setting by another.
 
+## Persisting the user layer and API keys in a browser
+
+```ts
+import { providerLayerStore, providerSecretBackend } from '@zodal/dials-core';
+import { createSettingsStore, persist } from '@zodal/dials-ui';
+import { createLocalStorageProvider } from '@zodal/store-localstorage'; // or store-http, IndexedDB...
+
+const settings = createSettingsStore(dials, { layer: {} });
+persist(settings, providerLayerStore(createLocalStorageProvider({ storageKey: 'app.settings' }), { sensitivityFor: dials.sensitivityFor }));
+
+const keys = providerSecretBackend(createLocalStorageProvider({ storageKey: 'app.keys' }));
+await keys.set('openai', pasted);   // returns a masked SecretRef
+await keys.reveal('openai');        // the plaintext, only on an explicit call
+```
+
+`providerLayerStore` never writes a secret (keys the schema or the name heuristic calls secret are stripped). `providerSecretBackend` keeps keys on the device: anyone with the unlocked device and browser profile can read them, which encrypting in the same storage would not change.
+
 ## The `.meta()` keys a settings form reads
 
 | key | effect |

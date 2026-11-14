@@ -92,3 +92,11 @@ export { defineLadder } from './ladder.js';
 export type { Ladder, LadderResult, Rung, RefusedWrite, ScopeBounds, WritableKey } from './ladder.js';
 export { resolvePlan, toResolvePlan } from './plan.js';
 export type { ResolvePlan, ResolvePlanOptions } from './plan.js';
+export { providerLayerStore, providerSecretBackend } from './provider-stores.js';
+export type {
+  RecordProvider,
+  StoredLayer,
+  StoredSecret,
+  ProviderLayerStoreOptions,
+  ProviderSecretBackendOptions,
+} from './provider-stores.js';
