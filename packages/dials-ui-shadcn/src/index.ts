@@ -26,3 +26,6 @@ export { createShadcnSettingsRegistry, widgetIs } from './registry.js';
 
 export { SettingField, SettingsPanel } from './components.js';
 export type { SettingFieldProps, SettingsPanelProps } from './components.js';
+
+export { useSettings } from './use-settings.js';
+export type { UseSettingsResult } from './use-settings.js';

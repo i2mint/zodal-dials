@@ -82,6 +82,24 @@ The search box appears only when the form has more than 15 settings (`search: 'a
 
 A value that depends on another value (ink colour per paper, say) is best modelled as one setting per case (`ink.light`, `ink.dark`) with the host showing the one that applies, or as a scope the host pushes onto the cascade; the renderer does not key one setting by another.
 
+## The `.meta()` keys a settings form reads
+
+| key | effect |
+|---|---|
+| `title` | the label (default: the humanized key) |
+| `description` | help text under the control |
+| `facets: string[]` | the groups the setting appears in (the first is its section) |
+| `order` | position within its section (lower first) |
+| `advanced: true` | after the essentials, behind one "Advanced" disclosure |
+| `hidden: true` | left out of the form (`includeHidden` brings it back) |
+| `readOnly: true` / `editable: false` | drawn, but not editable |
+| `editWidget` | force a widget (`'slider'`, `'color'`, `'radio'`, `'select'`, `'textarea'`, ...) |
+| `enumLabels: { value: 'Label' }` | option text for enum values (the value is still what is saved) |
+| `step`, `unit` | slider/number step and the readout's unit (`14px`) |
+| `writableScopes`, `userBounds`, `scopeBounds` | what a gated scope may set, within which bounds (`defineLadder`) |
+
+In React, `useSettings(store, dials)` from `@zodal/dials-ui-shadcn` returns `{ state, form, states }` for `SettingsPanel`.
+
 ## Status
 
 **Design phase.** This repo currently holds the research corpus ([`docs/research/`](docs/research/)), the design plan, and the agent dev toolkit. No package code yet — the first build checkpoint is `@zodal/dials-core` (the cascade keystone). Nothing is published to npm.
