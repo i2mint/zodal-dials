@@ -17,6 +17,16 @@
         "types": "./dist/index.d.cts",
         "default": "./dist/index.cjs"
       }
+    },
+    "./cascade": {
+      "import": {
+        "types": "./dist/cascade.d.ts",
+        "default": "./dist/cascade.js"
+      },
+      "require": {
+        "types": "./dist/cascade.d.cts",
+        "default": "./dist/cascade.cjs"
+      }
     }
   },
   "publishConfig": {

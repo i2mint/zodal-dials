@@ -90,3 +90,5 @@ export type {
 export type { LayerStore, LayerStoreCapabilities } from './store.js';
 export { defineLadder } from './ladder.js';
 export type { Ladder, LadderResult, Rung, RefusedWrite, ScopeBounds, WritableKey } from './ladder.js';
+export { resolvePlan, toResolvePlan } from './plan.js';
+export type { ResolvePlan, ResolvePlanOptions } from './plan.js';

@@ -9,6 +9,7 @@
 import { z } from 'zod';
 import { unwrapZodSchema } from '@zodal/core';
 import type { MergeStrategy, Sensitivity } from './model.js';
+import { normalizeKey, secretByName } from './names.js';
 
 /** Get the field map of a Zod object schema. Prefers `_zod.def.shape` (the workspace Zod-v4 rule),
  *  falling back to the public `.shape`. */
@@ -57,28 +58,6 @@ export function keyMergeStrategy(field: z.ZodType): MergeStrategy {
   const override = readMeta(field).mergeStrategy;
   if (override === 'replace' || override === 'deep-merge' || override === 'append') return override;
   return baseType(field) === 'object' ? 'deep-merge' : 'replace';
-}
-
-/** Split a dotted/snake/camelCase key into lowercased word-separated form for heuristic matching. */
-function normalizeKey(key: string): string {
-  return key
-    .replace(/([a-z0-9])([A-Z])/g, '$1 $2')
-    .replace(/([A-Z]+)([A-Z][a-z])/g, '$1 $2')
-    .replace(/[._\-/]+/g, ' ')
-    .toLowerCase();
-}
-
-/**
- * Field-name heuristic for secret values. Matched against the de-camelCased, separator-normalized
- * key so `apiKey`, `api_key`, `apiKeys`, `refreshToken`, `privateKeyPath`, `passwordHash`,
- * `client_secret`, `secretId` all trip it, while `keyboard`, `tokenize`, `secretary` do not. Errs
- * toward classifying-as-secret (fail-safe).
- */
-const SECRET_NAME =
-  /(?:^| )(secret|secrets|secret ?id|passwords?|passwd|credentials?|tokens?|api ?keys?|access ?keys?|private ?keys?|client ?secret|refresh ?token|access ?token|auth ?token)(?: |$)/;
-
-function secretByName(key: string): boolean {
-  return SECRET_NAME.test(normalizeKey(key));
 }
 
 /** Maximum nesting depth searched for a nested secret (settings schemas are rarely deeper). */
