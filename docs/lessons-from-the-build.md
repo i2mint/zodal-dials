@@ -47,3 +47,4 @@ The secret-never-leaks benchmark (#5) is easy to pass on the happy path and easy
 ## Process
 
 - **Adversarial review is not a formality.** Two critic passes on the keystone caught a second round of incomplete fixes. Every chunk's critic found something real. Write the regression test for each finding in the same change.
+- **Testing against an unpublished `@zodal/core`: copy its build, don't symlink the package.** A symlink into the zodal checkout makes core's `.d.ts` resolve that checkout's `zod`, so two zod copies meet in one program and `tsc` runs out of memory comparing their types. Copy `package.json` + `dist/` into a `node_modules/@zodal/core` of this repo (so `zod` resolves here) and point the packages at it.
