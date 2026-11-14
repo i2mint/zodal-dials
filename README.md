@@ -50,6 +50,31 @@ It **wraps, it doesn't rebuild**: a settings document is modeled as a degenerate
 
 See [`docs/dev-plan.md`](docs/dev-plan.md) for the phased, horizon-graded plan and [`docs/zodal-dials-concept.md`](docs/zodal-dials-concept.md) for the design intent.
 
+## A ladder: layers chosen per item, and what the user may change (`defineLadder`)
+
+When the stack depends on what is resolved (a preset for the item's type, the policy rule that matches it, the end user's settings), declare it once so resolve, explain, the panel and checks agree:
+
+```ts
+import { defineDials, defineLadder } from '@zodal/dials-core';
+
+const dials = defineDials(z.object({
+  size: z.number().default(64).meta({ writableScopes: ['user'], userBounds: { min: 16, max: 256 } }),
+  seed: z.string().default('x'), // not writable from 'user'
+}));
+
+const ladder = defineLadder<Item>(dials, [
+  { scope: 'preset', layer: (item) => PRESETS[item.type] },        // chosen from the context
+  { scope: 'policy', layer: (item) => ruleFor(item)?.layer, managed: true },
+  { scope: 'user', layer: () => userSettings, gated: true },       // only opened keys, within bounds
+]);
+
+const r = ladder.resolve(item);      // effective + provenance, and r.refused (closed or out-of-bounds user values)
+ladder.explain('size', item);        // which scope won, what it shadowed
+ladder.writableKeys('user');         // [{ key: 'size', bounds: { min: 16, max: 256 } }] for the panel
+```
+
+`scopeBounds: { <scope>: { min, max, oneOf } }` bounds any scope; `userBounds` is the shorthand for `user`. A refused value is left out of the stack and reported, never silently applied.
+
 ## A settings sheet on a phone (`@zodal/dials-ui-vanilla`)
 
 The schema says what each control needs; the vanilla renderer draws it, and an optional stylesheet sizes it for touch (44px targets, a 28px slider thumb, inputs at 16px or more) while inheriting the host's fonts.
