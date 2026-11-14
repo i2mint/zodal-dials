@@ -73,7 +73,7 @@ ladder.explain('size', item);        // which scope won, what it shadowed
 ladder.writableKeys('user');         // [{ key: 'size', bounds: { min: 16, max: 256 } }] for the panel
 ```
 
-`scopeBounds: { <scope>: { min, max, oneOf } }` bounds any scope; `userBounds` is the shorthand for `user`. A refused value is left out of the stack and reported, never silently applied.
+`scopeBounds: { <scope>: { min, max, oneOf } }` bounds any scope; `userBounds` is the shorthand for `user`; without either, a number's own `.min()`/`.max()` apply. A refused value is left out of the stack and reported (a secret is never echoed), never silently applied. A rung's `layer(ctx)` may return several scoped layers (`preset:song`, `preset:dark`), and `gate: (key, value, ctx) => false | true | bounds` replaces the meta allowlist when it comes from runtime config. `writableKeys('user', item)` marks keys the policy band holds for that item as `locked`. Bounds go on `replace` keys only (a partial object cannot bound a merged result).
 
 ## A settings sheet on a phone (`@zodal/dials-ui-vanilla`)
 

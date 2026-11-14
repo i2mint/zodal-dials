@@ -51,13 +51,54 @@ describe('defineLadder', () => {
       { key: 'size', bounds: { min: 16, max: 256 } },
       { key: 'shape', bounds: { oneOf: ['ring', 'grid'] } },
     ]);
-    expect(ladder.writableKeys('project')).toEqual([]);
+    // A rung that is not gated may set every key.
+    expect(ladder.writableKeys('project').map((k) => k.key)).toEqual(['size', 'shape', 'seed']);
+    expect(ladder.checkWrite('project', 'seed', 'x')).toBeUndefined();
+    expect(() => ladder.writableKeys('nope')).toThrow(/no rung/);
   });
   it('exposes the stack it built', () => {
     const { stack } = ladder.stack({ type: 'song', id: 'a' });
     expect(stack.map((s) => s.scope)).toEqual(['preset', 'project', 'user']);
   });
-  it('refuses a rung without a scope', () => {
+  it('refuses a rung without a scope, duplicate scopes, and managed + gated', () => {
     expect(() => defineLadder(dials, [{ scope: '', layer: {} }])).toThrow(/scope/);
+    expect(() => defineLadder(dials, [{ scope: 'a', layer: {} }, { scope: 'a', layer: {} }])).toThrow(/share/);
+    expect(() => defineLadder(dials, [{ scope: 'u', layer: {}, managed: true, gated: true }])).toThrow(/managed and gated/);
+  });
+  it('validates bounds at definition time', () => {
+    const bad = (meta: Record<string, unknown>, field = z.number()) =>
+      () => defineLadder(defineDials(z.object({ k: field.meta(meta) })), []);
+    expect(bad({ writableScopes: ['user'], userBounds: { min: 5, max: 1 } })).toThrow(/min 5 > max 1/);
+    expect(bad({ userBounds: { min: 1 } })).toThrow(/writableScopes/);
+    expect(bad({ writableScopes: ['user'], userBounds: { oneOf: [{}] } }, z.object({ a: z.number() }) as any)).toThrow(/merges/);
+  });
+  it('never echoes a refused secret', () => {
+    const d = defineDials(z.object({ apiKey: z.string().default('') }));
+    const l = defineLadder(d, [{ scope: 'user', layer: { apiKey: 'sk-live-123' }, gated: true }]);
+    const r = l.resolve(undefined);
+    expect(JSON.stringify(r.refused)).not.toContain('sk-live-123');
+    expect(r.refused[0]!.reason).toBe('not-writable');
+  });
+  it('a rung may return several scoped layers, and a gate seam from runtime config', () => {
+    const allow: Record<string, boolean> = { size: true };
+    const l = defineLadder<{ dark: boolean }>(dials, [
+      { scope: 'preset', layer: (c) => [{ scope: 'preset:base', layer: { size: 20 } }, ...(c.dark ? [{ scope: 'preset:dark', layer: { size: 30 } }] : [])] },
+      { scope: 'user', layer: { size: 50, seed: 'u' }, gated: true, gate: (key) => (allow[key] ? { max: 40 } : false) },
+    ]);
+    const r = l.resolve({ dark: true });
+    expect(r.effective.size).toBe(30);
+    expect(r.provenance.size.winningScope).toBe('preset:dark');
+    expect(r.refused.map((x) => x.reason).sort()).toEqual(['not-writable', 'out-of-bounds']);
+  });
+  it('marks keys a managed rung holds as locked for the context', () => {
+    const keys = ladder.writableKeys('user', { type: 'book', id: 'locked' });
+    expect(keys.find((k) => k.key === 'size')?.locked).toBe(true);
+    expect(ladder.writableKeys('user').some((k) => k.locked)).toBe(false);
+  });
+  it('falls back to the schema bounds', () => {
+    const d = defineDials(z.object({ n: z.number().min(1).max(9).default(5).meta({ writableScopes: ['user'] }) }));
+    const l = defineLadder(d, [{ scope: 'user', layer: { n: 99 }, gated: true }]);
+    expect(l.writableKeys('user')).toEqual([{ key: 'n', bounds: { min: 1, max: 9 } }]);
+    expect(l.resolve(undefined).refused[0]!.reason).toBe('out-of-bounds');
   });
 });
