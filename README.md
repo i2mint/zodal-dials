@@ -124,6 +124,21 @@ A value that depends on another value (ink colour per paper, say) is best modell
 | `writableScopes`, `userBounds`, `scopeBounds` | what a gated scope may set, within which bounds (`defineLadder`) |
 
 In React, `useSettings(store, dials)` from `@zodal/dials-ui-shadcn` returns `{ state, form, states }` for `SettingsPanel`.
+## Resolving without zod (`@zodal/dials-core/cascade`)
+
+Classic zod is ~92 kB gzip. Where the main path must stay light, compute a plan where zod is loaded (a build script, a server) and resolve with the zod-free entry, which imports neither zod nor `@zodal/core`:
+
+```ts
+// build time
+import { toResolvePlan } from '@zodal/dials-core';
+writeFileSync('settings-plan.json', JSON.stringify(toResolvePlan(dials)));
+
+// main path (1.9 kB gzip vs 71 kB for defineDials + zod, esbuild --minify)
+import { resolvePlan } from '@zodal/dials-core/cascade';
+const { effective, provenance } = resolvePlan(plan, [{ scope: 'user', layer: savedLayer }]);
+```
+
+The result equals `dials.resolve(stack, options)` (masking included). Values are not validated on this path, so use it for layers validated when they were written.
 
 ## Status
 
