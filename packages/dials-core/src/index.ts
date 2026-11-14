@@ -100,3 +100,5 @@ export type {
   ProviderLayerStoreOptions,
   ProviderSecretBackendOptions,
 } from './provider-stores.js';
+export { mountSection, sectionOf } from './section.js';
+export type { MountSectionOptions, EffectiveSource } from './section.js';

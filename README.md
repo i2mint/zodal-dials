@@ -123,6 +123,19 @@ await keys.reveal('openai');        // the plaintext, only on an explicit call
 ```
 
 `providerLayerStore` never writes a secret, and drops any it finds on load (pass `sensitivityFor: dials.sensitivityFor`; without it, it fails closed on secret-looking names at any depth). `persist` marks the layer saved only after a save of that exact layer succeeds, coalesces rapid edits, keeps edits made while loading, and ignores its own echo from a watchable store. A layer store over `@zodal/store-localstorage` is not watchable (it has no `subscribe`). `providerSecretBackend` keeps keys on the device: anyone with the unlocked device and browser profile can read them, which encrypting in the same storage would not change.
+## A component's settings as a section (`mountSection`, `sectionOf`)
+
+A reusable component owns its settings schema and reads it through one `settings` argument; the host mounts it under a prefix:
+
+```ts
+const dials = defineDials(z.object({
+  theme: z.enum(['light', 'dark']).default('light'),
+  ...mountSection('naming', namingSettingsSchema, { facet: 'Song titles' }), // naming.mode, naming.maxWords
+}));
+nameSong(words, { settings: sectionOf(store, 'naming', namingSettingsSchema) }); // { mode, maxWords }, defaults filled
+```
+
+The section's facet comes first (its heading) and the component's own facets follow (`facets: 'replace'` drops them). `sectionOf` takes a store, a resolution or a values map; a value the component's schema rejects falls back to its default.
 
 ## The `.meta()` keys a settings form reads
 
