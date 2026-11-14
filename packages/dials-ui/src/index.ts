@@ -81,3 +81,6 @@ export {
   createLocalStorageProfileStorage,
 } from './profiles.js';
 export type { ProfileStore, ProfileStorage, ProfileStoreOptions, ProfileMeta, NamedProfile } from './profiles.js';
+
+export { persist } from './persist.js';
+export type { PersistOptions, Persistence } from './persist.js';
